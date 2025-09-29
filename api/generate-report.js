@@ -1,7 +1,11 @@
-// Simple in-memory store (in production, use a database).
-const reports = new Map();
-
+import { Redis } from '@upstash/redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Initialize Redis with your Vercel KV environment variables
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -38,12 +42,12 @@ export default async function handler(req, res) {
     const reportId = generateReportId();
     console.log('Generated report ID:', reportId);
 
-    // Store the report data
-    reports.set(reportId, {
+    // ✅ STORE IN REDIS (not in memory)
+    await redis.set(reportId, JSON.stringify({
       content: aiText,
       userName: formData.name,
       timestamp: new Date().toISOString()
-    });
+    }));
 
     const reportUrl = `https://${req.headers.host}/report?id=${reportId}`;
     console.log('Report URL:', reportUrl);
