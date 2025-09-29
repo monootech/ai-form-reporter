@@ -1,5 +1,10 @@
-// In-memory store (Note: This clears on server restart. For production, use a database.)
-const reports = new Map();
+import { Redis } from '@upstash/redis';
+
+// Initialize Redis with your Vercel KV environment variables
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -8,10 +13,26 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
 
-  if (!id || !reports.has(id)) {
-    return res.status(404).json({ error: 'Report not found' });
+  console.log('Looking for report ID:', id);
+  
+  if (!id) {
+    return res.status(400).json({ error: 'Report ID is required' });
   }
 
-  const reportData = reports.get(id);
-  res.json({ success: true, report: reportData });
+  try {
+    // ✅ GET FROM REDIS (not from memory)
+    const rawData = await redis.get(id);
+    console.log('Redis response for ID', id, ':', rawData);
+    
+    if (!rawData) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const reportData = JSON.parse(rawData);
+    res.json({ success: true, report: reportData });
+    
+  } catch (error) {
+    console.error('Error fetching from Redis:', error);
+    res.status(500).json({ error: 'Failed to fetch report' });
+  }
 }
