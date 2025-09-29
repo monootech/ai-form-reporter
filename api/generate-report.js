@@ -1,28 +1,37 @@
+// ===== FILE: api/generate-report.js =====
+// Main API endpoint for generating AI reports and storing in Redis
+
 import { Redis } from '@upstash/redis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Redis with your Vercel KV environment variables
+// ===== REDIS CONFIGURATION =====
+// Initialize Redis with Vercel KV environment variables
 const redis = new Redis({
   url: process.env.KV_REST_API_URL,
   token: process.env.KV_REST_API_TOKEN,
 });
 
+// ===== MAIN API HANDLER =====
 export default async function handler(req, res) {
+  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Set CORS headers for cross-origin requests
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   try {
+    // ===== EXTRACT FORM DATA =====
     const { formData } = req.body;
-    console.log('Received form data:', formData);
+    console.log('📝 Received form data:', formData);
     
+    // ===== INITIALIZE GEMINI AI =====
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    // Use the correct model name
+    // Configure the Gemini model
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash-001",
       generationConfig: {
@@ -31,32 +40,44 @@ export default async function handler(req, res) {
       }
     });
 
+    // ===== CREATE AI PROMPT =====
     const prompt = `Create a detailed, personalized analysis report based on this form submission: ${JSON.stringify(formData)}. Provide actionable insights and recommendations. Format the response in clear paragraphs.`;
 
-    console.log('Calling Gemini API...');
+    console.log('🤖 Calling Gemini API...');
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const aiText = response.text();
-    console.log('AI response received, length:', aiText.length);
+    console.log('✅ AI response received, length:', aiText.length);
 
+    // ===== GENERATE REPORT ID =====
     const reportId = generateReportId();
-    console.log('Generated report ID:', reportId);
+    console.log('📋 Generated report ID:', reportId);
 
-    // ✅ STORE IN REDIS (not in memory)
-    await redis.set(reportId, JSON.stringify({
+    // ===== STORE REPORT IN REDIS =====
+    // IMPORTANT: Upstash Redis automatically handles JSON serialization
+    // Do NOT use JSON.stringify() - it will cause double-serialization
+    await redis.set(reportId, {
       content: aiText,
       userName: formData.name,
       timestamp: new Date().toISOString()
-    }));
+    });
 
+    // ===== VERIFY REDIS STORAGE =====
+    console.log('🔍 Verifying Redis storage...');
+    const verifyData = await redis.get(reportId);
+    console.log('✅ Redis verification - data stored:', !!verifyData);
+    console.log('📊 Stored data type:', typeof verifyData);
+
+    // ===== GENERATE REPORT URL =====
     const reportUrl = `https://${req.headers.host}/report?id=${reportId}`;
-    console.log('Report URL:', reportUrl);
+    console.log('🔗 Report URL:', reportUrl);
     
-    // Send email with report link
-    console.log('Attempting to send email to:', formData.email);
+    // ===== SEND EMAIL NOTIFICATION =====
+    console.log('📧 Attempting to send email to:', formData.email);
     const emailResult = await sendEmailNotification(formData.email, reportUrl, aiText, formData.name);
-    console.log('Email result:', emailResult);
+    console.log('📨 Email result:', emailResult);
 
+    // ===== RETURN SUCCESS RESPONSE =====
     res.json({ 
       success: true, 
       report: aiText,
@@ -66,7 +87,8 @@ export default async function handler(req, res) {
     });
     
   } catch (error) {
-    console.error('Error in generate-report:', error);
+    // ===== ERROR HANDLING =====
+    console.error('❌ Error in generate-report:', error);
     res.json({ 
       success: false, 
       error: error.message 
@@ -74,17 +96,19 @@ export default async function handler(req, res) {
   }
 }
 
-// Email notification function
+// ===== EMAIL NOTIFICATION FUNCTION =====
+// Handles sending email notifications via Resend API
 async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
-  console.log('Starting email send process...');
-  console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+  console.log('📧 Starting email send process...');
+  console.log('🔑 RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
   
-  // For testing, use Resend's test domain
+  // For testing, use Resend's test domain (no verification needed)
   const fromEmail = 'onboarding@resend.dev';
   
   // Create email preview (first 200 characters)
   const emailPreview = aiReport.substring(0, 200) + (aiReport.length > 200 ? '...' : '');
   
+  // ===== EMAIL TEMPLATE =====
   const emailData = {
     from: `AI Report System <${fromEmail}>`,
     to: userEmail,
@@ -139,12 +163,14 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
   try {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     
+    // Check if Resend API key is configured
     if (!RESEND_API_KEY) {
       console.error('❌ RESEND_API_KEY is not set!');
       return { success: false, error: 'RESEND_API_KEY not configured' };
     }
 
-    console.log('Sending request to Resend API...');
+    // ===== SEND EMAIL VIA RESEND API =====
+    console.log('📤 Sending request to Resend API...');
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -154,26 +180,32 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
       body: JSON.stringify(emailData)
     });
 
-    console.log('Resend API response status:', response.status);
+    console.log('📊 Resend API response status:', response.status);
     
+    // Handle API errors
     if (!response.ok) {
       const errorData = await response.text();
       console.error('❌ Resend API error:', errorData);
       return { success: false, error: `API error: ${response.status}`, details: errorData };
     }
 
+    // Return successful email send result
     const result = await response.json();
     console.log('✅ Email sent successfully to:', userEmail);
-    console.log('Resend response:', result);
+    console.log('📨 Resend response:', result);
     
     return { success: true, data: result };
     
   } catch (error) {
+    // Handle network or other errors
     console.error('❌ Error sending email:', error);
     return { success: false, error: error.message };
   }
 }
 
+// ===== REPORT ID GENERATOR =====
+// Creates unique report IDs using timestamp and random string
 function generateReportId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
+// ===== END OF FILE =====
