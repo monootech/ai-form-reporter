@@ -6,21 +6,25 @@ export default function Report() {
   const { id } = router.query;
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (id) {
       const fetchReport = async () => {
         try {
+          console.log('Fetching report for ID:', id);
           const response = await fetch(`/api/get-report?id=${id}`);
           const data = await response.json();
           
           if (data.success) {
-            setReportData(data.report); // This now holds { content, userName, timestamp }
+            console.log('Report found:', data.report);
+            setReportData(data.report);
           } else {
-            console.error('Report not found');
+            setError('Report not found: ' + (data.error || 'Unknown error'));
           }
         } catch (error) {
           console.error('Error fetching report:', error);
+          setError('Failed to load report: ' + error.message);
         } finally {
           setLoading(false);
         }
@@ -30,15 +34,22 @@ export default function Report() {
     }
   }, [id]);
 
-  // ... (Keep your existing loading and JSX structure here)
-  // Now you can use reportData.content and reportData.userName in your page.
-
-
   if (loading) {
     return (
       <div className="loading-container">
         <div className="spinner">📊</div>
-        <h2>Loading Your Report...</h2>
+        <h2>Loading Your Personalized Report...</h2>
+        <p>Please wait while we retrieve your AI analysis...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <h2>⚠️ Error Loading Report</h2>
+        <p>{error}</p>
+        <p>Please try going back and generating a new report.</p>
       </div>
     );
   }
@@ -47,35 +58,37 @@ export default function Report() {
     <div className="report-container">
       <header className="report-header">
         <h1>📊 Your Personalized AI Report</h1>
-        <p>Report ID: {id}</p>
+        <p>Created for: <strong>{reportData.userName || 'Valued User'}</strong></p>
+        <p>Generated on: {new Date(reportData.timestamp).toLocaleDateString()}</p>
       </header>
       
       <div className="report-content">
-        <div className="report-section">
-          <h2>🎯 Executive Summary</h2>
-          <p>Your AI-generated insights and recommendations will appear here. This is a beautiful, professional report layout.</p>
-        </div>
-        
-        <div className="report-section">
-          <h2>💡 Key Recommendations</h2>
-          <ul>
-            <li>Personalized strategy based on your goals</li>
-            <li>Actionable steps for immediate implementation</li>
-            <li>Long-term growth opportunities</li>
-          </ul>
+        {/* ACTUAL AI CONTENT WILL DISPLAY HERE */}
+        <div className="ai-content-section">
+          <h2>🎯 Your Personalized Analysis</h2>
+          <div className="ai-text-content">
+            {reportData.content ? (
+              reportData.content.split('\n').map((paragraph, index) => (
+                paragraph.trim() ? <p key={index}>{paragraph}</p> : <br key={index} />
+              ))
+            ) : (
+              <p>No content available for this report.</p>
+            )}
+          </div>
         </div>
         
         <div className="cta-section">
-          <h3>Ready to Take the Next Step?</h3>
-          <p>Get personalized coaching and implementation support</p>
+          <h3>🚀 Ready to Implement These Insights?</h3>
+          <p>Get personalized coaching to turn these recommendations into real results</p>
           <a href="https://your-ghl-funnel-link.com" className="cta-button">
-            🚀 Book Your Strategy Session
+            Book Your Strategy Session
           </a>
+          <p className="small-note">Limited spots available - Book now!</p>
         </div>
       </div>
 
       <style jsx>{`
-        .loading-container {
+        .loading-container, .error-container {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -84,6 +97,11 @@ export default function Report() {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
           text-align: center;
+          padding: 2rem;
+        }
+        
+        .error-container {
+          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
         }
         
         .spinner {
@@ -114,7 +132,7 @@ export default function Report() {
           font-size: 2.5rem;
         }
         
-        .report-section {
+        .ai-content-section {
           background: #f8f9fa;
           padding: 2rem;
           margin: 1.5rem 0;
@@ -122,9 +140,15 @@ export default function Report() {
           border-left: 5px solid #667eea;
         }
         
-        .report-section h2 {
-          color: #2c3e50;
-          margin-top: 0;
+        .ai-text-content p {
+          margin-bottom: 1rem;
+          white-space: pre-line;
+        }
+        
+        .ai-text-content br {
+          margin-bottom: 1rem;
+          display: block;
+          content: "";
         }
         
         .cta-section {
@@ -151,6 +175,13 @@ export default function Report() {
         
         .cta-button:hover {
           transform: translateY(-2px);
+          background: #218838;
+        }
+        
+        .small-note {
+          font-size: 0.9rem;
+          color: #666;
+          margin-top: 1rem;
         }
         
         @keyframes bounce {
