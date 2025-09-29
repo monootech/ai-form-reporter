@@ -51,3 +51,37 @@ export default async function handler(req, res) {
 function generateReportId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
+
+
+
+
+
+// Add this function to send emails
+async function sendReportEmail(email, reportUrl, userName) {
+  // Using SendGrid (free tier available)
+  const sgResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: email }] }],
+      from: { email: 'noreply@yourdomain.com', name: 'AI Report System' },
+      subject: `Your Personalized AI Report is Ready, ${userName}!`,
+      content: [{
+        type: 'text/html',
+        value: `
+          <h2>Your AI Report is Ready!</h2>
+          <p>Hi ${userName},</p>
+          <p>Your personalized AI analysis report has been generated.</p>
+          <a href="${reportUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            View Your Report
+          </a>
+          <p><small>This link will remain active for 30 days.</small></p>
+        `
+      }]
+    })
+  });
+  return sgResponse.ok;
+}
