@@ -14,6 +14,8 @@ export default async function handler(req, res) {
 
   try {
     const { formData } = req.body;
+    console.log('Received form data:', formData);
+    
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     // Use the correct model name
@@ -27,40 +29,40 @@ export default async function handler(req, res) {
 
     const prompt = `Create a detailed, personalized analysis report based on this form submission: ${JSON.stringify(formData)}. Provide actionable insights and recommendations. Format the response in clear paragraphs.`;
 
+    console.log('Calling Gemini API...');
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const aiText = response.text();
+    console.log('AI response received, length:', aiText.length);
 
-
-    
-    
     const reportId = generateReportId();
+    console.log('Generated report ID:', reportId);
 
-// ✅ ADD THIS: Store the report data
-reports.set(reportId, {
-  content: aiText,
-  userName: formData.name,
-  timestamp: new Date().toISOString()
-});
+    // Store the report data
+    reports.set(reportId, {
+      content: aiText,
+      userName: formData.name,
+      timestamp: new Date().toISOString()
+    });
 
-// ✅ UPDATE THIS: Change report.html to report (Next.js page)
-const reportUrl = `https://${req.headers.host}/report?id=${reportId}`;
-
-// Send email with report link
-await sendEmailNotification(formData.email, reportUrl, aiText, formData.name);
-
-res.json({ 
-  success: true, 
-  report: aiText,
-  reportUrl: reportUrl,  // This now points to /report instead of /report.html
-  reportId: reportId
-});
-
-
+    const reportUrl = `https://${req.headers.host}/report?id=${reportId}`;
+    console.log('Report URL:', reportUrl);
     
+    // Send email with report link
+    console.log('Attempting to send email to:', formData.email);
+    const emailResult = await sendEmailNotification(formData.email, reportUrl, aiText, formData.name);
+    console.log('Email result:', emailResult);
+
+    res.json({ 
+      success: true, 
+      report: aiText,
+      reportUrl: reportUrl,
+      reportId: reportId,
+      emailSent: emailResult
+    });
     
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in generate-report:', error);
     res.json({ 
       success: false, 
       error: error.message 
@@ -70,8 +72,14 @@ res.json({
 
 // Email notification function
 async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
+  console.log('Starting email send process...');
+  console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+  
   // For testing, use Resend's test domain
-  const fromEmail = 'onboarding@resend.dev'; // This works without domain verification
+  const fromEmail = 'onboarding@resend.dev';
+  
+  // Create email preview (first 200 characters)
+  const emailPreview = aiReport.substring(0, 200) + (aiReport.length > 200 ? '...' : '');
   
   const emailData = {
     from: `AI Report System <${fromEmail}>`,
@@ -86,8 +94,8 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
             .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
             .button { display: inline-block; padding: 14px 28px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
-            .preview { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; font-style: italic; }
-            .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
+            .preview { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; font-style: italic; border-radius: 5px; }
+            .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
           </style>
         </head>
         <body>
@@ -101,7 +109,7 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
             
             <div class="preview">
               <strong>Quick Preview:</strong><br>
-              ${aiReport.split('\n').slice(0, 3).map(line => line.trim()).filter(line => line.length > 0).join('<br>')}...
+              ${emailPreview}
             </div>
             
             <p><strong>View your complete detailed report with personalized recommendations:</strong></p>
@@ -128,10 +136,11 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     
     if (!RESEND_API_KEY) {
-      console.log('RESEND_API_KEY not set - email would have been sent');
-      return;
+      console.error('❌ RESEND_API_KEY is not set!');
+      return { success: false, error: 'RESEND_API_KEY not configured' };
     }
 
+    console.log('Sending request to Resend API...');
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -141,17 +150,23 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
       body: JSON.stringify(emailData)
     });
 
+    console.log('Resend API response status:', response.status);
+    
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Email API error:', errorData);
-      // Don't fail the entire request if email fails
-      return;
+      console.error('❌ Resend API error:', errorData);
+      return { success: false, error: `API error: ${response.status}`, details: errorData };
     }
-    
+
+    const result = await response.json();
     console.log('✅ Email sent successfully to:', userEmail);
+    console.log('Resend response:', result);
+    
+    return { success: true, data: result };
+    
   } catch (error) {
-    console.error('Error sending email:', error);
-    // Don't fail the entire request if email fails
+    console.error('❌ Error sending email:', error);
+    return { success: false, error: error.message };
   }
 }
 
