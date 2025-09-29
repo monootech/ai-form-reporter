@@ -1,3 +1,6 @@
+// Simple in-memory store (in production, use a database)
+const reports = new Map();
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req, res) {
@@ -28,18 +31,33 @@ export default async function handler(req, res) {
     const response = await result.response;
     const aiText = response.text();
 
-    const reportId = generateReportId();
-    const reportUrl = `https://${req.headers.host}/report.html?id=${reportId}`;
-    
-    // Send email with report link
-    await sendEmailNotification(formData.email, reportUrl, aiText, formData.name);
 
-    res.json({ 
-      success: true, 
-      report: aiText,
-      reportUrl: reportUrl,
-      reportId: reportId
-    });
+    
+    
+    const reportId = generateReportId();
+
+// ✅ ADD THIS: Store the report data
+reports.set(reportId, {
+  content: aiText,
+  userName: formData.name,
+  timestamp: new Date().toISOString()
+});
+
+// ✅ UPDATE THIS: Change report.html to report (Next.js page)
+const reportUrl = `https://${req.headers.host}/report?id=${reportId}`;
+
+// Send email with report link
+await sendEmailNotification(formData.email, reportUrl, aiText, formData.name);
+
+res.json({ 
+  success: true, 
+  report: aiText,
+  reportUrl: reportUrl,  // This now points to /report instead of /report.html
+  reportId: reportId
+});
+
+
+    
     
   } catch (error) {
     console.error('Error:', error);
