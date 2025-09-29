@@ -4,32 +4,35 @@ import { useEffect, useState } from 'react';
 export default function Report() {
   const router = useRouter();
   const { id } = router.query;
-  const [report, setReport] = useState(null);
+  const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  if (id) {
-    // Fetch the actual report data
-    const fetchReport = async () => {
-      try {
-        const response = await fetch(`/api/get-report?id=${id}`);
-        const data = await response.json();
-        
-        if (data.success) {
-          setReport(data.report);
-        } else {
-          console.error('Report not found');
+  useEffect(() => {
+    if (id) {
+      const fetchReport = async () => {
+        try {
+          const response = await fetch(`/api/get-report?id=${id}`);
+          const data = await response.json();
+          
+          if (data.success) {
+            setReportData(data.report); // This now holds { content, userName, timestamp }
+          } else {
+            console.error('Report not found');
+          }
+        } catch (error) {
+          console.error('Error fetching report:', error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error fetching report:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    fetchReport();
-  }
-}, [id]);
+      fetchReport();
+    }
+  }, [id]);
+
+  // ... (Keep your existing loading and JSX structure here)
+  // Now you can use reportData.content and reportData.userName in your page.
+
 
   if (loading) {
     return (
