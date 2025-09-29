@@ -15,14 +15,14 @@ export default async function handler(req, res) {
 
     // Use the correct model name
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash", // Updated model name
+      model: "gemini-1.5-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 800,
       }
     });
 
-    const prompt = `Create a detailed, personalized analysis report based on this form submission: ${JSON.stringify(formData)}. Provide actionable insights and recommendations in HTML format for email.`;
+    const prompt = `Create a detailed, personalized analysis report based on this form submission: ${JSON.stringify(formData)}. Provide actionable insights and recommendations. Format the response in clear paragraphs.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -52,7 +52,11 @@ export default async function handler(req, res) {
 
 // Email notification function
 async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
+  // For testing, use Resend's test domain
+  const fromEmail = 'onboarding@resend.dev'; // This works without domain verification
+  
   const emailData = {
+    from: `AI Report System <${fromEmail}>`,
     to: userEmail,
     subject: `Your Personalized AI Report is Ready!`,
     html: `
@@ -60,44 +64,56 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
       <html>
         <head>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 10px 10px; }
-            .button { display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0; }
-            .preview { background: white; padding: 15px; border-left: 4px solid #667eea; margin: 15px 0; }
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; padding: 14px 28px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
+            .preview { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; font-style: italic; }
+            .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>Your AI Report is Ready! 🎉</h1>
+          <div class="header">
+            <h1>🎉 Your AI Report is Ready!</h1>
+          </div>
+          <div class="content">
+            <p>Hello <strong>${userName || 'there'}</strong>,</p>
+            
+            <p>Your personalized AI analysis has been completed and is now available for you to view.</p>
+            
+            <div class="preview">
+              <strong>Quick Preview:</strong><br>
+              ${aiReport.split('\n').slice(0, 3).map(line => line.trim()).filter(line => line.length > 0).join('<br>')}...
             </div>
-            <div class="content">
-              <p>Hello ${userName || 'there'},</p>
-              <p>Your personalized AI analysis has been completed. Here's a quick preview:</p>
-              
-              <div class="preview">
-                ${aiReport.split('\n').slice(0, 3).join('<br>')}...
-              </div>
-              
-              <p>View your complete detailed report with personalized recommendations:</p>
-              <a href="${reportUrl}" class="button">View Full Report</a>
-              
-              <p><strong>Report URL:</strong><br>
-              <a href="${reportUrl}">${reportUrl}</a></p>
-              
-              <p>Best regards,<br>Your AI Analysis Team</p>
+            
+            <p><strong>View your complete detailed report with personalized recommendations:</strong></p>
+            
+            <div style="text-align: center;">
+              <a href="${reportUrl}" class="button">📊 View Your Full Report</a>
+            </div>
+            
+            <p>Or copy and paste this link in your browser:<br>
+            <a href="${reportUrl}">${reportUrl}</a></p>
+            
+            <div class="footer">
+              <p><strong>Best regards,</strong><br>Your AI Analysis Team</p>
+              <p><small>This is an automated message. Please do not reply to this email.</small></p>
             </div>
           </div>
         </body>
       </html>
-    `
+    `,
+    text: `Hello ${userName || 'there'}! Your personalized AI report is ready. View it here: ${reportUrl}`
   };
 
-  // Send email using Resend API (recommended for Vercel)
   try {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    
+    if (!RESEND_API_KEY) {
+      console.log('RESEND_API_KEY not set - email would have been sent');
+      return;
+    }
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -108,10 +124,13 @@ async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to send email');
+      const errorData = await response.text();
+      console.error('Email API error:', errorData);
+      // Don't fail the entire request if email fails
+      return;
     }
     
-    console.log('Email sent successfully');
+    console.log('✅ Email sent successfully to:', userEmail);
   } catch (error) {
     console.error('Error sending email:', error);
     // Don't fail the entire request if email fails
