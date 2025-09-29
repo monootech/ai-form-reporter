@@ -1,4 +1,4 @@
-// Simple in-memory store (in production, use a database)
+// Simple in-memory store (in production, use a database).
 const reports = new Map();
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
