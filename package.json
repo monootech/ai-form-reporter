@@ -2,10 +2,6 @@
   "name": "ai-form-reporter",
   "version": "1.0.0",
   "description": "AI-powered form reporting system",
-  "type": "module",
-  "engines": {
-    "node": "22.x"
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,5 +13,8 @@
     "next": "^13.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }
