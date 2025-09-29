@@ -7,13 +7,29 @@ export default function Report() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      // In a real app, you'd fetch the report data using the ID
-      // For now, we'll show a beautiful placeholder
-      setLoading(false);
-    }
-  }, [id]);
+useEffect(() => {
+  if (id) {
+    // Fetch the actual report data
+    const fetchReport = async () => {
+      try {
+        const response = await fetch(`/api/get-report?id=${id}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setReport(data.report);
+        } else {
+          console.error('Report not found');
+        }
+      } catch (error) {
+        console.error('Error fetching report:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReport();
+  }
+}, [id]);
 
   if (loading) {
     return (
