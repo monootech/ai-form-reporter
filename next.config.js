@@ -3,11 +3,7 @@ const nextConfig = {
   experimental: {
     esmExternals: 'loose'
   },
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-  },
+  // Remove the 'api' section as it's not valid in Next.js config
 }
 
-export default nextConfig
+export default nextConfig;
