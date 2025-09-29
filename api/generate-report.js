@@ -5,7 +5,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -14,28 +13,31 @@ export default async function handler(req, res) {
     const { formData } = req.body;
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+    // Use the correct model name
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-pro",
+      model: "gemini-1.5-flash", // Updated model name
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 800,
       }
     });
 
-    const prompt = `Create a detailed, personalized analysis report based on this form submission: ${JSON.stringify(formData)}. Provide actionable insights and recommendations.`;
+    const prompt = `Create a detailed, personalized analysis report based on this form submission: ${JSON.stringify(formData)}. Provide actionable insights and recommendations in HTML format for email.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const aiText = response.text();
 
-    // Generate a unique report ID
     const reportId = generateReportId();
+    const reportUrl = `https://${req.headers.host}/report.html?id=${reportId}`;
     
-    // Return both the AI response and the report URL
+    // Send email with report link
+    await sendEmailNotification(formData.email, reportUrl, aiText, formData.name);
+
     res.json({ 
       success: true, 
       report: aiText,
-      reportUrl: `https://${req.headers.host}/report.html?id=${reportId}`,
+      reportUrl: reportUrl,
       reportId: reportId
     });
     
@@ -48,40 +50,74 @@ export default async function handler(req, res) {
   }
 }
 
-function generateReportId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+// Email notification function
+async function sendEmailNotification(userEmail, reportUrl, aiReport, userName) {
+  const emailData = {
+    to: userEmail,
+    subject: `Your Personalized AI Report is Ready!`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; padding: 12px 24px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 15px 0; }
+            .preview { background: white; padding: 15px; border-left: 4px solid #667eea; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Your AI Report is Ready! 🎉</h1>
+            </div>
+            <div class="content">
+              <p>Hello ${userName || 'there'},</p>
+              <p>Your personalized AI analysis has been completed. Here's a quick preview:</p>
+              
+              <div class="preview">
+                ${aiReport.split('\n').slice(0, 3).join('<br>')}...
+              </div>
+              
+              <p>View your complete detailed report with personalized recommendations:</p>
+              <a href="${reportUrl}" class="button">View Full Report</a>
+              
+              <p><strong>Report URL:</strong><br>
+              <a href="${reportUrl}">${reportUrl}</a></p>
+              
+              <p>Best regards,<br>Your AI Analysis Team</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+  };
+
+  // Send email using Resend API (recommended for Vercel)
+  try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${RESEND_API_KEY}`
+      },
+      body: JSON.stringify(emailData)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to send email');
+    }
+    
+    console.log('Email sent successfully');
+  } catch (error) {
+    console.error('Error sending email:', error);
+    // Don't fail the entire request if email fails
+  }
 }
 
-
-
-
-
-// Add this function to send emails
-async function sendReportEmail(email, reportUrl, userName) {
-  // Using SendGrid (free tier available)
-  const sgResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      personalizations: [{ to: [{ email: email }] }],
-      from: { email: 'noreply@yourdomain.com', name: 'AI Report System' },
-      subject: `Your Personalized AI Report is Ready, ${userName}!`,
-      content: [{
-        type: 'text/html',
-        value: `
-          <h2>Your AI Report is Ready!</h2>
-          <p>Hi ${userName},</p>
-          <p>Your personalized AI analysis report has been generated.</p>
-          <a href="${reportUrl}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            View Your Report
-          </a>
-          <p><small>This link will remain active for 30 days.</small></p>
-        `
-      }]
-    })
-  });
-  return sgResponse.ok;
+function generateReportId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
