@@ -13,26 +13,36 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
 
-  console.log('Looking for report ID:', id);
+  console.log('🔍 Looking for report ID:', id);
   
   if (!id) {
     return res.status(400).json({ error: 'Report ID is required' });
   }
 
   try {
-    // ✅ GET FROM REDIS (not from memory)
-    const rawData = await redis.get(id);
-    console.log('Redis response for ID', id, ':', rawData);
+    console.log('🔍 Attempting to fetch from Redis...');
     
-    if (!rawData) {
+    // ✅ GET FROM REDIS - Upstash automatically parses JSON, no need for JSON.parse!
+    const reportData = await redis.get(id);
+    console.log('🔍 Redis response type:', typeof reportData);
+    console.log('🔍 Redis response for ID', id, ':', reportData ? 'DATA FOUND' : 'NO DATA');
+    
+    if (!reportData) {
+      console.log('❌ No data found in Redis for ID:', id);
       return res.status(404).json({ error: 'Report not found' });
     }
 
-    const reportData = JSON.parse(rawData);
+    console.log('✅ Successfully retrieved report data for:', reportData.userName);
+    
     res.json({ success: true, report: reportData });
     
   } catch (error) {
-    console.error('Error fetching from Redis:', error);
-    res.status(500).json({ error: 'Failed to fetch report' });
+    console.error('❌ Error fetching from Redis:', error);
+    console.error('❌ Error details:', error.message);
+    
+    res.status(500).json({ 
+      error: 'Failed to fetch report',
+      details: error.message 
+    });
   }
 }
