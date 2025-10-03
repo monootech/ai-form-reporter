@@ -2,7 +2,7 @@
 // Combines: Webhook Handler + Gemini Analysis + Tag Generation
 // Trigger: HTTP API (Webhook)
 // Environment Variables Needed: 
-//   GEMINI_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_BUCKET_NAME, PUBLISHER_WORKFLOW_URL
+//   GEMINI_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_BUCKET_NAME, REPORT_PUBLISHER_WORKFLOW_URL
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -62,7 +62,7 @@ export default defineComponent({
       // ===== STEP 7: TRIGGER PUBLISHER WORKFLOW =====
       const publisherResponse = await $send.http({
         method: 'POST',
-        url: process.env.PUBLISHER_WORKFLOW_URL,
+        url: process.env.REPORT_PUBLISHER_WORKFLOW_URL,
         data: { 
           contactId, 
           reportData,
