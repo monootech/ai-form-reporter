@@ -43,6 +43,7 @@ export default defineComponent({
       const reportData = {
         reportId: contactId,
         contactId,
+        email, 
         formData,
         analysis: analysisResult.analysis,
         generatedTags,
