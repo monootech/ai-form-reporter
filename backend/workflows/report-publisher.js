@@ -158,7 +158,7 @@ async function sendEmail(contactId, reportData) {
 
   const emailData = {
     from: 'Habit Mastery System <reports@mail.habitmasterysystem.com>',
-    to: reportData.formData.email,
+    to: reportData.formData.email || `contact-${contactId}@habitmasterysystem.com`,
     subject: `🎯 Your Personalized AI Habit Blueprint is Ready!`,
     html: generateEmailHTML(contactId, reportData)
   };
