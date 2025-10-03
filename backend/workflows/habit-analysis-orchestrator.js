@@ -4,6 +4,8 @@
 // Environment Variables Needed: 
 //   GEMINI_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_BUCKET_NAME, PUBLISHER_WORKFLOW_URL
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 export default defineComponent({
   async run({ steps, $ }) {
     const { body } = steps.trigger.event;
