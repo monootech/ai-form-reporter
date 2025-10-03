@@ -172,7 +172,7 @@ async function sendEmail(contactId, reportData) {
  */
 function generateEmailHTML(contactId, reportData) {
   const reportUrl = `https://ai.habitmasterysystem.com/report/${contactId}`;
-  const pdfUrl = `https://pub-<your-r2-subdomain>.r2.dev/reports/${contactId}/report.pdf`;
+  const pdfUrl = `https://pub-5fd9b7e823f34897ac9194436fa60593.r2.dev/reports/${contactId}/report.pdf`;
 
   return `
     <!DOCTYPE html>
