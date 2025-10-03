@@ -1,41 +1,37 @@
-// pages/start.js - Entry Point with Access Control
+// FILE: my_repo/pages/start.js (UPDATE)
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 export default function StartPage() {
   const router = useRouter();
-  const { user, token } = router.query;
+  const { email, contactId } = router.query;
 
   useEffect(() => {
-    if (user && token) {
-      checkReportAccess(user, token);
+    if (contactId) {
+      // Check if report exists by trying to fetch it
+      checkExistingReport(contactId);
+    } else {
+      // No contactId, go to form
+      router.push('/');
     }
-  }, [user, token]);
+  }, [contactId]);
 
-  const checkReportAccess = async (userId, accessToken) => {
+  const checkExistingReport = async (contactId) => {
     try {
-      // Verify token and check if report exists within 7 days
       const response = await fetch(
-        `https://your-pipedream-webhook.pipedream.net/check-access`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, token: accessToken })
-        }
+        `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/reports/${contactId}/report.json`
       );
-
-      const { hasRecentReport, reportId } = await response.json();
-
-      if (hasRecentReport) {
-        // Redirect to existing report
-        router.push(`/report/${reportId}`);
+      
+      if (response.ok) {
+        // Report exists, redirect to it
+        router.push(`/report/${contactId}`);
       } else {
-        // Redirect to form (or show form directly)
-        router.push(`/form?user=${userId}&token=${accessToken}`);
+        // No report, go to form with contact info
+        router.push(`/?contactId=${contactId}${email ? `&email=${email}` : ''}`);
       }
     } catch (error) {
-      console.error('Access check failed:', error);
-      router.push('/form');
+      // Error or no report, go to form
+      router.push(`/?contactId=${contactId}${email ? `&email=${email}` : ''}`);
     }
   };
 
@@ -43,7 +39,7 @@ export default function StartPage() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Checking your access...</p>
+        <p className="mt-4 text-gray-600">Checking for existing report...</p>
       </div>
     </div>
   );
