@@ -60,7 +60,7 @@ export default defineComponent({
       // ===== STEP 7: TRIGGER PUBLISHER WORKFLOW =====
       const publisherResponse = await $send.http({
         method: 'POST',
-        url: process.env.PUBLISHER_WORKFLOW_URL,
+        url: process.env.REPORT_PUBLISHER_WORKFLOW_URL,
         data: { 
           contactId, 
           reportData,
