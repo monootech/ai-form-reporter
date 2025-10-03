@@ -19,7 +19,8 @@ export default function ReportPage() {
     try {
       // Fetch JSON from Cloudflare R2 via public URL
       const response = await fetch(
-        `https://pub-5fd9b7e823f34897ac9194436fa60593.r2.dev/reports/${reportId}/report.json`
+        `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/reports/${reportId}/report.json`
+
       );
       
       if (!response.ok) {
