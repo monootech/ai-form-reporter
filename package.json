@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build --debug",
-    "start": "next start",
+    "build": "next build",
+    "start": "next start", 
     "lint": "next lint",
-    "vercel-build": "next build --debug"
+    "vercel-build": "next build"
   },
   "dependencies": {
     "next": "13.5.11",
