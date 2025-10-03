@@ -1,4 +1,6 @@
-// pages/api/track-click.js - Track User Interactions
+// Frontend API route for tracking clicks
+// Sends to Report-Publisher workflow
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -7,15 +9,17 @@ export default async function handler(req, res) {
   const { reportId, linkType } = req.body;
 
   try {
-    // Send tracking data to Pipedream
-    await fetch(process.env.PIPEDREAM_TRACKING_WEBHOOK, {
+    // Send to Report-Publisher workflow
+    await fetch(process.env.PUBLISHER_WORKFLOW_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        reportId,
-        linkType,
-        timestamp: new Date().toISOString(),
-        action: `Clicked_${linkType.charAt(0).toUpperCase() + linkType.slice(1)}_Link_AI_Report`
+        action: 'track_click',
+        trackingData: {
+          reportId,
+          linkType,
+          timestamp: new Date().toISOString()
+        }
       })
     });
 
