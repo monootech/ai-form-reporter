@@ -45,38 +45,172 @@ export default function Home() {
         "I have the willpower but not the right system"
       ]
     },
-    // Add other steps here...
+    {
+      title: "The Foundation",
+      question: "Which areas do you currently track or want to start tracking?",
+      type: "checkbox",
+      field: "trackingAreas",
+      options: [
+        "Finances (budgeting, savings, income)",
+        "Health & Fitness (exercise, nutrition, wellness)", 
+        "Learning & Skills (courses, reading, growth)",
+        "Focus & Productivity (deep work, time management)",
+        "Projects & Goals (progress, milestones, outcomes)"
+      ]
+    },
+    {
+      title: "Your Success Style",
+      question: "What's your ideal accountability setup?",
+      type: "radio",
+      field: "accountabilityStyle",
+      options: [
+        "Self-tracking with great systems",
+        "Partner or small group accountability", 
+        "Larger community with shared goals",
+        "Structured coaching or mentorship"
+      ]
+    },
+    {
+      title: "Immediate Focus",
+      question: "What specific habit would make the biggest impact in the next 30 days?",
+      type: "text",
+      field: "thirtyDayFocus",
+      placeholder: "Describe the ONE habit that would create a breakthrough..."
+    },
+    {
+      title: "Future Self",
+      question: "Imagine your ideal day 6 months from now - what does it look like?",
+      type: "text", 
+      field: "futureVision",
+      placeholder: "Paint a picture of your ideal day 6 months from now..."
+    },
+    {
+      title: "Technical Foundation",
+      question: "How would you describe your Google Sheets comfort level?",
+      type: "radio",
+      field: "sheetsSkillLevel",
+      options: [
+        "Beginner 🟢 — I can enter data but formulas confuse me",
+        "Intermediate 🟡 — I use basic formulas but advanced stuff feels overwhelming", 
+        "Advanced 🔵 — I work with pivot tables, conditional formatting, maybe some scripts",
+        "Expert 🟣 — I build complex dashboards and automations regularly"
+      ]
+    }
   ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // If not last step, just advance
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       return;
     }
 
+    // Last step - submit to backend
     setLoading(true);
     try {
+      console.log('Submitting form data:', formData);
+      
       const response = await fetch(process.env.NEXT_PUBLIC_ORCHESTRATOR_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contactId: contactId || `temp-${Date.now()}`,
-          email: email || 'unknown@example.com',
-          formData
+          email: email || 'test@example.com',
+          formData: formData
         })
       });
 
       const result = await response.json();
+      console.log('Backend response:', result);
       
       if (result.action === 'redirect_to_existing' || result.action === 'analysis_complete') {
         router.push(`/report/${result.reportId}`);
+      } else {
+        throw new Error(result.error || 'Unknown error from backend');
       }
     } catch (error) {
       console.error('Form submission error:', error);
-      alert('Error submitting form. Please try again.');
+      alert(`Error: ${error.message}. Check console for details.`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const renderField = (step) => {
+    switch (step.type) {
+      case 'dropdown':
+        return (
+          <select 
+            value={formData[step.field]}
+            onChange={(e) => setFormData({...formData, [step.field]: e.target.value})}
+            className="w-full p-3 border border-gray-300 rounded-lg"
+            required
+          >
+            <option value="">Select an option</option>
+            {step.options.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        );
+      
+      case 'radio':
+        return (
+          <div className="space-y-3">
+            {step.options.map(option => (
+              <label key={option} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <input
+                  type="radio"
+                  name={step.field}
+                  value={option}
+                  checked={formData[step.field] === option}
+                  onChange={(e) => setFormData({...formData, [step.field]: e.target.value})}
+                  className="text-green-600 focus:ring-green-500"
+                  required
+                />
+                <span className="flex-1">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      case 'checkbox':
+        return (
+          <div className="space-y-3">
+            {step.options.map(option => (
+              <label key={option} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData[step.field].includes(option)}
+                  onChange={(e) => {
+                    const updated = e.target.checked
+                      ? [...formData[step.field], option]
+                      : formData[step.field].filter(item => item !== option);
+                    setFormData({...formData, [step.field]: updated});
+                  }}
+                  className="text-green-600 focus:ring-green-500 rounded"
+                />
+                <span className="flex-1">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      case 'text':
+        return (
+          <textarea
+            value={formData[step.field]}
+            onChange={(e) => setFormData({...formData, [step.field]: e.target.value})}
+            rows={4}
+            className="w-full p-3 border border-gray-300 rounded-lg"
+            placeholder={step.placeholder}
+            required
+          />
+        );
+      
+      default:
+        return null;
     }
   };
 
@@ -105,32 +239,17 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
           <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
           
-          {/* Form fields will go here */}
+          {/* Dynamic Field Rendering */}
           <div className="mb-6">
-            {steps[currentStep].type === 'dropdown' && (
-              <select 
-                value={formData[steps[currentStep].field]}
-                onChange={(e) => setFormData({
-                  ...formData, 
-                  [steps[currentStep].field]: e.target.value
-                })}
-                className="w-full p-3 border border-gray-300 rounded-lg"
-                required
-              >
-                <option value="">Select an option</option>
-                {steps[currentStep].options.map(option => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            )}
+            {renderField(steps[currentStep])}
           </div>
 
           <div className="flex justify-between">
             <button
               type="button"
-              onClick={() => setCurrentStep(currentStep - 1)}
+              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
               disabled={currentStep === 0}
-              className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50"
+              className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Back
             </button>
