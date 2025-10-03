@@ -16,7 +16,7 @@ export default defineComponent({
       return;
     }
 
-    const { contactId, formData, purchaseTags = [] } = body;
+    const { contactId, formData, email, purchaseTags = [] } = body;
 
     try {
       // ===== STEP 2: CHECK FOR EXISTING REPORT (7-DAY LIMIT) =====
