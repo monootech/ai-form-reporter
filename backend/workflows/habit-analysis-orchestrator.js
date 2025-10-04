@@ -1,9 +1,4 @@
-// Pipedream Workflow: Habit-Analysis-Orchestrator
-// Combines: Webhook Handler + Gemini Analysis + Tag Generation
-// Trigger: HTTP API (Webhook)
-// Environment Variables Needed: 
-//   GEMINI_API_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_BUCKET_NAME, PUBLISHER_WORKFLOW_URL
-
+// Pipedream Workflow: Habit-Analysis-Orchestrator - FIXED VERSION
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default defineComponent({
@@ -12,9 +7,15 @@ export default defineComponent({
     
     // ===== STEP 1: VALIDATE INCOMING DATA =====
     if (!body.contactId || !body.formData) {
+      // ✅ FIXED: Return proper HTTP response with CORS headers
       return {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        statusCode: 400,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        },
         body: JSON.stringify({
           error: 'Invalid data: missing contactId or formData'
         })
@@ -28,9 +29,13 @@ export default defineComponent({
       const existingReport = await checkExistingReport(contactId);
       
       if (existingReport && isWithin7Days(existingReport.generatedAt)) {
+        // ✅ FIXED: Return proper HTTP response
         return {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
+          statusCode: 200,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
           body: JSON.stringify({
             action: 'redirect_to_existing',
             reportId: contactId,
@@ -77,9 +82,13 @@ export default defineComponent({
         }
       });
 
+      // ✅ FIXED: Return proper HTTP response with CORS headers
       return {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
+        statusCode: 200,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify({
           action: 'analysis_complete',
           reportId: contactId,
@@ -89,9 +98,13 @@ export default defineComponent({
 
     } catch (error) {
       console.error('Orchestrator error:', error);
+      // ✅ FIXED: Return proper HTTP error response
       return {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
+        statusCode: 500,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify({ 
           error: 'Analysis failed', 
           details: error.message 
@@ -101,7 +114,11 @@ export default defineComponent({
   },
 })
 
-// ===== HELPER FUNCTIONS =====
+// ===== CORS HANDLER FOR OPTIONS REQUESTS =====
+// Add this as a separate step in your Pipedream workflow
+// Or handle OPTIONS method in the main function
+
+// ===== HELPER FUNCTIONS (NO CHANGES NEEDED) =====
 
 /**
  * Check if report exists in R2 and is within 7 days
