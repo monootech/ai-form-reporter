@@ -52,14 +52,17 @@ async function handlePdfAndEmail(contactId, reportData) {
       'Downloaded_PDF_AI_Report'
     ]);
 
-    return {
-      statusCode: 200,
-      body: {
-        status: 'publish_complete',
-        emailId: emailResult.emailId,
-        reportId: contactId
-      }
-    };
+return {
+  statusCode: 200,
+  headers: { 
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  },
+  body: JSON.stringify({ 
+    status: 'publish_complete', 
+    emailId: emailResult.emailId 
+  })
+}
 
   } catch (error) {
     console.error('PDF and email error:', error);
