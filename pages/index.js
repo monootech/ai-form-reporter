@@ -18,6 +18,56 @@ export default function Home() {
     sheetsSkillLevel: ''
   });
 
+
+  // START OF NEW Codes added
+
+  
+const [validClient, setValidClient] = useState(null); // null = checking, true = valid, false = invalid
+const [validationError, setValidationError] = useState('');
+
+useEffect(() => {
+  const validateClient = async () => {
+    // Check if required parameters are missing
+    if (!contactId || !email) {
+      setValidClient(false);
+      setValidationError('Missing required parameters. Please use the link sent to your email.');
+      return;
+    }
+
+    try {
+      // Validate with your backend/API
+      const response = await fetch('/api/validate-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId, email })
+      });
+
+      const result = await response.json();
+      
+      if (result.valid) {
+        setValidClient(true);
+      } else {
+        setValidClient(false);
+        setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+      setValidClient(false);
+      setValidationError('Unable to validate your access. Please try again or contact support.');
+    }
+  };
+
+  if (contactId && email) {
+    validateClient();
+  } else {
+    setValidClient(false);
+    setValidationError('Missing required parameters. Please use the link sent to your email.');
+  }
+}, [contactId, email]);
+
+// END OF NEW Codes added  
+
+  
   const steps = [
     {
       title: "Your Big Goal",
