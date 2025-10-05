@@ -1,4 +1,4 @@
-// FILE: my_repo/pages/index.js (REPLACE ENTIRE FILE)
+// FILE: my_repo/pages/index.js (REPLACE ENTIRE FILE) / stable but with test email
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
