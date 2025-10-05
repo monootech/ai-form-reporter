@@ -278,15 +278,16 @@ export default function Home() {
               Back
             </button>
             
-            <button 
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              {loading ? 'Processing...' : 
-               currentStep === steps.length - 1 ? 'Generate My Blueprint' : 'Continue'}
-            </button>
-          </div>
+<button 
+  type="submit"
+  disabled={loading}
+  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+>
+  {loading ? 'Processing...' : 
+   currentStep === 6 ? 'Generate My Blueprint' : 'Continue'}
+</button>
+  
+  </div>
         </form>
       </div>
     </div>
