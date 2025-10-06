@@ -1,4 +1,3 @@
-// FILE: my_repo/pages/index.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -21,7 +20,6 @@ export default function Home() {
   // Validation states
   const [validClient, setValidClient] = useState(null); // null = checking
   const [validationError, setValidationError] = useState('');
-  const [purchaseTags, setPurchaseTags] = useState([]);
 
   // Validate client on page load
   useEffect(() => {
@@ -33,24 +31,25 @@ export default function Home() {
       }
 
       try {
-        // Single orchestrator endpoint for validation
+        // Call orchestrator for validation (empty formData)
         const response = await fetch('/api/orchestrator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contactId, email, formData: {} }) // empty formData for validation
+          body: JSON.stringify({ 
+            contactId, 
+            email, 
+            formData: {} // Empty for validation
+          })
         });
 
         const result = await response.json();
 
-        if (result.success) {
+        if (result.valid || result.success) {
           setValidClient(true);
-          setPurchaseTags(result.purchaseTags || []);
         } else {
           setValidClient(false);
           setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
         }
-
-        console.log('Validation result:', result);
       } catch (error) {
         console.error('Validation error:', error);
         setValidClient(false);
@@ -151,25 +150,32 @@ export default function Home() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // If not last step, just advance
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       return;
     }
 
+    // Last step - submit to backend
     setLoading(true);
-
     try {
+      console.log('Submitting form data:', formData);
+      
       const response = await fetch('/api/orchestrator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contactId, email, formData })
+        body: JSON.stringify({
+          contactId,
+          email,
+          formData: formData
+        })
       });
 
       const result = await response.json();
-      console.log('Orchestrator result:', result);
-
-      if (result.action === 'redirect_to_existing' || result.action === 'analysis_complete') {
-        router.push(`/report/${result.reportId}`);
+      console.log('Backend response:', result);
+      
+      if (result.action === 'analysis_complete' || result.success) {
+        router.push(`/report/${result.reportId || contactId}`);
       } else {
         throw new Error(result.error || 'Unknown error from backend');
       }
@@ -181,7 +187,6 @@ export default function Home() {
     }
   };
 
-  // Render dynamic fields
   const renderField = (step) => {
     switch (step.type) {
       case 'dropdown':
@@ -193,9 +198,12 @@ export default function Home() {
             required
           >
             <option value="">Select an option</option>
-            {step.options.map(option => <option key={option} value={option}>{option}</option>)}
+            {step.options.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
           </select>
         );
+      
       case 'radio':
         return (
           <div className="space-y-3">
@@ -215,6 +223,7 @@ export default function Home() {
             ))}
           </div>
         );
+      
       case 'checkbox':
         return (
           <div className="space-y-3">
@@ -236,6 +245,7 @@ export default function Home() {
             ))}
           </div>
         );
+      
       case 'text':
         return (
           <textarea
@@ -247,12 +257,13 @@ export default function Home() {
             required
           />
         );
+      
       default:
         return null;
     }
   };
 
-  // --- Render UI ---
+  // Show loading while validating
   if (validClient === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -264,6 +275,7 @@ export default function Home() {
     );
   }
 
+  // Show error if invalid client
   if (validClient === false) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -282,11 +294,15 @@ export default function Home() {
     );
   }
 
+  // Show the form only for valid clients
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">Personalized AI Habit Blueprint</h1>
-
+        <h1 className="text-3xl font-bold text-center mb-8">
+          Personalized AI Habit Blueprint
+        </h1>
+        
+        {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Step {currentStep + 1} of {steps.length}</span>
@@ -304,7 +320,10 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
           <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
           
-          <div className="mb-6">{renderField(steps[currentStep])}</div>
+          {/* Dynamic Field Rendering */}
+          <div className="mb-6">
+            {renderField(steps[currentStep])}
+          </div>
 
           <div className="flex justify-between">
             <button
@@ -315,6 +334,7 @@ export default function Home() {
             >
               Back
             </button>
+            
             <button 
               type="submit"
               disabled={loading}
