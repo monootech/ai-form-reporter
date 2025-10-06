@@ -8,18 +8,27 @@ export default async function handler(req, res) {
   const logs = [];
   const { contactId, email, formData } = req.body || {};
 
+  // Step 0: Validate input
   if (!contactId || !email) {
-    logs.push({ step: 'Input validation', status: 'FAIL', detail: 'Missing contactId or email' });
+    logs.push({
+      step: 'Input validation',
+      status: 'FAIL',
+      detail: 'Missing contactId or email'
+    });
     return res.status(400).json({ logs });
   }
 
-  logs.push({ step: 'Sending contactId/email to GHL', status: 'PENDING', detail: { contactId, email } });
+  logs.push({
+    step: 'Sending contactId/email to GHL',
+    status: 'PENDING',
+    detail: { contactId, email }
+  });
 
   try {
     const GHL_API_KEY = process.env.GHL_API_KEY;
     const API_VERSION = '2021-07-28';
 
-    // 1️⃣ Fetch contact
+    // Step 1️⃣: Fetch contact from GHL
     const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
       method: 'GET',
       headers: {
@@ -30,15 +39,29 @@ export default async function handler(req, res) {
     });
 
     const contactData = await contactRes.json();
-    logs.push({ step: 'Validate contact', status: contactRes.ok ? 'SUCCESS' : 'FAIL', contact: contactData });
+    logs.push({
+      step: 'Validate contact',
+      status: contactRes.ok ? 'SUCCESS' : 'FAIL',
+      contact: contactData
+    });
 
     if (!contactRes.ok) {
       return res.status(404).json({ logs, error: 'Contact fetch failed' });
     }
 
-    // 2️⃣ Email match
-    const actualEmail = (contactData.emailLowerCase || contactData.email || '').normalize('NFKC').trim().toLowerCase();
-    const expectedEmail = email.normalize('NFKC').trim().toLowerCase();
+    // Step 2️⃣: Email match (normalized)
+    const actualEmail = (contactData.emailLowerCase || contactData.email || '')
+      .normalize('NFKC')
+      .replace(/\u00A0/g, '') // remove non-breaking spaces
+      .trim()
+      .toLowerCase();
+
+    const expectedEmail = email
+      .normalize('NFKC')
+      .replace(/\u00A0/g, '')
+      .trim()
+      .toLowerCase();
+
     const emailMatches = actualEmail === expectedEmail;
 
     logs.push({
@@ -52,7 +75,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ logs, error: 'Email does not match contact' });
     }
 
-    // 3️⃣ Extract purchase tags
+    // Step 3️⃣: Extract purchase tags
     const PURCHASE_TAGS = [
       'Bought_Main_Tracker',
       'Bought_Template_Vault',
@@ -63,26 +86,44 @@ export default async function handler(req, res) {
     ].map(t => t.toLowerCase());
 
     const purchaseTags = (contactData.tags || [])
-      .map(t => t.toLowerCase().trim())
+      .map(t => t.normalize('NFKC').replace(/\u00A0/g, '').trim().toLowerCase())
       .filter(t => PURCHASE_TAGS.includes(t));
 
-    logs.push({ step: 'Extract purchase tags', status: 'SUCCESS', purchaseTags });
+    logs.push({
+      step: 'Extract purchase tags',
+      status: 'SUCCESS',
+      purchaseTags
+    });
 
-    // 4️⃣ Send tags to GHL (simulate)
-    logs.push({ step: 'Send tags to GHL', status: 'SUCCESS', sentTags: purchaseTags });
+    // Step 4️⃣: Send tags to GHL (simulation)
+    logs.push({
+      step: 'Send tags to GHL',
+      status: 'SUCCESS',
+      sentTags: purchaseTags
+    });
 
-    // 5️⃣ Gemini AI analysis (simulate fallback)
+    // Step 5️⃣: Gemini AI analysis (simulation / fallback)
     const aiResult = {
       summary: 'Generated AI 30-day personalized blueprint successfully.',
       insights: ['Habit stacking', 'Weekly review', 'Focus blocks']
     };
-    logs.push({ step: 'Gemini AI analysis', status: 'SUCCESS', result: aiResult });
+    logs.push({
+      step: 'Gemini AI analysis',
+      status: 'SUCCESS',
+      result: aiResult
+    });
 
-    // 6️⃣ Upload to R2 (simulate)
+    // Step 6️⃣: Upload results to R2 (simulation)
     const uploaded = true;
     const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/test-file.json`;
-    logs.push({ step: 'Upload results to R2', status: 'SUCCESS', uploaded, publicUrl });
+    logs.push({
+      step: 'Upload results to R2',
+      status: 'SUCCESS',
+      uploaded,
+      publicUrl
+    });
 
+    // Final response
     return res.status(200).json({ logs });
   } catch (err) {
     logs.push({ step: 'Orchestrator error', status: 'FAIL', error: err.toString() });
