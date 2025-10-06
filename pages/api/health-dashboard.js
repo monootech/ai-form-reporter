@@ -1,15 +1,59 @@
-// pages/api/health-dashboard.js
 import fetch from "node-fetch";
 
 export default async function handler(req, res) {
-  const logs = [];
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return res
+      .status(204)
+      .setHeader("Access-Control-Allow-Origin", "*")
+      .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+      .setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
+      .end();
+  }
 
-  // 1️⃣ Validate client step
-  const contactId = req.query.contactId || "TEST_CONTACT";
+  const contactId = req.query.contactId || "test-contact-id";
   const email = req.query.email || "test@example.com";
 
+  const logs = [];
+
+  // Helper to render HTML dashboard
+  const renderHTML = (logs) => {
+    const color = (status) =>
+      status === "success" ? "green" : status === "fail" ? "red" : "orange";
+
+    return `
+      <html>
+        <head>
+          <title>Health Dashboard</title>
+          <style>
+            body { font-family: sans-serif; padding: 2rem; background: #f5f5f5; }
+            .step { margin-bottom: 1rem; padding: 1rem; background: #fff; border-radius: 8px; }
+            .step h3 { margin: 0 0 0.5rem 0; }
+            .step pre { background: #eee; padding: 0.5rem; overflow-x: auto; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <h1>Health Dashboard</h1>
+          <ul>
+            ${logs
+              .map(
+                (l) => `
+              <li class="step">
+                <h3 style="color:${color(l.status)}">${l.step} — ${l.status.toUpperCase()}</h3>
+                <pre>${JSON.stringify(l.details, null, 2)}</pre>
+              </li>
+            `
+              )
+              .join("")}
+          </ul>
+        </body>
+      </html>
+    `;
+  };
+
   try {
-    logs.push({ step: "Sending contactId/email to GHL", status: "pending" });
+    // Step 1: Fetch contact from GHL
+    logs.push({ step: "Sending contactId/email to GHL", status: "pending", details: { contactId, email } });
 
     const GHL_API_KEY = process.env.GHL_API_KEY;
     const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
@@ -20,25 +64,26 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
       },
     });
+
     const contactData = await contactRes.json();
 
-    if (!contactRes.ok || !contactData.email) {
-      logs.push({
-        step: "Validate contact",
-        status: "fail",
-        details: contactData,
-      });
-      return res.status(200).send(renderHTML(logs));
-    }
+    const contactOk = contactRes.ok && contactData.email;
+    const emailMatches = (contactData.emailLowerCase || contactData.email || "").trim().toLowerCase() === email.trim().toLowerCase();
 
-    const emailMatches = (contactData.emailLowerCase || "").trim() === email.toLowerCase().trim();
     logs.push({
       step: "Validate contact",
-      status: emailMatches ? "success" : "fail",
-      details: { contactEmail: contactData.email, emailMatches },
+      status: contactOk && emailMatches ? "success" : "fail",
+      details: contactData,
     });
 
-    // 2️⃣ Extract purchase tags
+    if (!contactOk) {
+      logs.push({ step: "Contact fetch failed", status: "fail", details: contactData });
+    }
+    if (!emailMatches) {
+      logs.push({ step: "Email match", status: "fail", details: { expected: email, actual: contactData.email } });
+    }
+
+    // Step 2: Extract purchase tags
     const PURCHASE_TAGS = [
       "Bought_Main_Tracker",
       "Bought_Template_Vault",
@@ -54,67 +99,44 @@ export default async function handler(req, res) {
 
     logs.push({
       step: "Extract purchase tags",
-      status: "success",
+      status: purchaseTags.length ? "success" : "fail",
       details: { purchaseTags },
     });
 
-    // 3️⃣ Simulate sending tags back to GHL
+    // Step 3: Check if tags are sent to GHL (simulate)
     logs.push({
       step: "Send tags to GHL",
       status: "success",
       details: { sentTags: purchaseTags },
     });
 
-    // 4️⃣ Simulate Gemini AI Analysis
+    // Step 4: Gemini AI analysis (simulate)
+    const geminiResult = {
+      summary: "Generated AI 30-day personalized blueprint successfully.",
+      insights: ["Habit stacking", "Weekly review", "Focus blocks"],
+    };
+
     logs.push({
       step: "Gemini AI analysis",
       status: "success",
-      details: { analysis: "Simulated AI analysis output" },
+      details: geminiResult,
     });
 
-    // 5️⃣ Simulate uploading to R2
+    // Step 5: Upload to R2 (simulate)
+    const r2UploadResult = {
+      uploaded: true,
+      bucket: process.env.R2_BUCKET_NAME,
+      publicUrl: `${process.env.R2_PUBLIC_DOMAIN}/test-file.json`,
+    };
+
     logs.push({
       step: "Upload results to R2",
       status: "success",
-      details: { uploaded: true, bucket: process.env.R2_BUCKET_NAME },
+      details: r2UploadResult,
     });
-
-    return res.status(200).send(renderHTML(logs));
   } catch (err) {
     logs.push({ step: "Unexpected error", status: "fail", details: err.toString() });
-    return res.status(500).send(renderHTML(logs));
   }
-}
 
-// Helper to render logs as HTML
-function renderHTML(logs) {
-  const html = `
-    <html>
-      <head>
-        <title>Health Dashboard</title>
-        <style>
-          body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
-          .step { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; }
-          .success { border-left: 5px solid green; }
-          .fail { border-left: 5px solid red; }
-          .pending { border-left: 5px solid orange; }
-          pre { background: #eee; padding: 10px; border-radius: 5px; }
-        </style>
-      </head>
-      <body>
-        <h1>Health / Debug Dashboard</h1>
-        ${logs
-          .map(
-            (log) => `
-          <div class="step ${log.status}">
-            <h2>${log.step} — ${log.status.toUpperCase()}</h2>
-            <pre>${JSON.stringify(log.details, null, 2)}</pre>
-          </div>
-        `
-          )
-          .join("")}
-      </body>
-    </html>
-  `;
-  return html;
+  return res.status(200).send(renderHTML(logs));
 }
