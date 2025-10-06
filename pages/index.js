@@ -1,13 +1,11 @@
-// FILE: my_repo/pages/index.js (REPLACE ENTIRE FILE) / stable but with test email
+// FILE: my_repo/pages/index.js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-
-
 
 export default function Home() {
   const router = useRouter();
   const { email, contactId } = router.query;
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,76 +18,55 @@ export default function Home() {
     sheetsSkillLevel: ''
   });
 
+  // Validation states
+  const [validClient, setValidClient] = useState(null); // null = checking
+  const [validationError, setValidationError] = useState('');
+  const [purchaseTags, setPurchaseTags] = useState([]);
 
-  // START OF NEW Codes added
+  // Validate client on page load
+  useEffect(() => {
+    const validateClient = async () => {
+      if (!contactId || !email) {
+        setValidClient(false);
+        setValidationError('Missing required parameters. Please use the link sent to your email.');
+        return;
+      }
 
-  
-const [validClient, setValidClient] = useState(null); // null = checking, true = valid, false = invalid
-const [validationError, setValidationError] = useState('');
+      try {
+        // Single orchestrator endpoint for validation
+        const response = await fetch('/api/orchestrator', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contactId, email, formData: {} }) // empty formData for validation
+        });
 
-useEffect(() => {
+        const result = await response.json();
 
+        if (result.success) {
+          setValidClient(true);
+          setPurchaseTags(result.purchaseTags || []);
+        } else {
+          setValidClient(false);
+          setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
+        }
 
+        console.log('Validation result:', result);
+      } catch (error) {
+        console.error('Validation error:', error);
+        setValidClient(false);
+        setValidationError('Unable to validate your access. Please try again or contact support.');
+      }
+    };
 
-
-// Start Added new code block
-
-const validateClient = async () => {
-  if (!contactId || !email) {
-    setValidClient(false);
-    setValidationError('Missing required parameters. Please use the link sent to your email.');
-    return;
-  }
-
-  try {
-    // Call your Vercel API
-    const response = await fetch('/api/validate-client', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contactId, email })
-    });
-
-    const result = await response.json();
-
-    if (result.valid) {
-      setValidClient(true);
-      setPurchaseTags(result.purchaseTags || []);
-
+    if (contactId && email) {
+      validateClient();
     } else {
       setValidClient(false);
-      setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
+      setValidationError('Missing required parameters. Please use the link sent to your email.');
     }
+  }, [contactId, email]);
 
-    console.log('Validation result:', result); // optional: debug
-  } catch (error) {
-    console.error('Validation error:', error);
-    setValidClient(false);
-    setValidationError('Unable to validate your access. Please try again or contact support.');
-  }
-};
-
-
-// END Added New Code Block
-
-
-
-
-
-
-
-
-
-  if (contactId && email) {
-    validateClient();
-  } else {
-    setValidClient(false);
-    setValidationError('Missing required parameters. Please use the link sent to your email.');
-  }
-}, [contactId, email]);
-
-// END OF NEW Codes added  
-
-  
+  // Form steps
   const steps = [
     {
       title: "Your Big Goal",
@@ -170,33 +147,27 @@ const validateClient = async () => {
     }
   ];
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // If not last step, just advance
+
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
       return;
     }
 
-    // Last step - submit to backend
     setLoading(true);
+
     try {
-      console.log('Submitting form data:', formData);
-      
-      const response = await fetch(process.env.NEXT_PUBLIC_ORCHESTRATOR_URL, {
+      const response = await fetch('/api/orchestrator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactId: contactId || `temp-${Date.now()}`,
-          email: email || 'test@example.com',
-          formData: formData
-        })
+        body: JSON.stringify({ contactId, email, formData })
       });
 
       const result = await response.json();
-      console.log('Backend response:', result);
-      
+      console.log('Orchestrator result:', result);
+
       if (result.action === 'redirect_to_existing' || result.action === 'analysis_complete') {
         router.push(`/report/${result.reportId}`);
       } else {
@@ -210,6 +181,7 @@ const validateClient = async () => {
     }
   };
 
+  // Render dynamic fields
   const renderField = (step) => {
     switch (step.type) {
       case 'dropdown':
@@ -221,12 +193,9 @@ const validateClient = async () => {
             required
           >
             <option value="">Select an option</option>
-            {step.options.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
+            {step.options.map(option => <option key={option} value={option}>{option}</option>)}
           </select>
         );
-      
       case 'radio':
         return (
           <div className="space-y-3">
@@ -246,7 +215,6 @@ const validateClient = async () => {
             ))}
           </div>
         );
-      
       case 'checkbox':
         return (
           <div className="space-y-3">
@@ -268,7 +236,6 @@ const validateClient = async () => {
             ))}
           </div>
         );
-      
       case 'text':
         return (
           <textarea
@@ -280,99 +247,29 @@ const validateClient = async () => {
             required
           />
         );
-      
       default:
         return null;
     }
   };
 
-// Show loading while validating
-if (validClient === null) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Validating your access...</p>
-      </div>
-    </div>
-  );
-}
-
-// Show error if invalid client
-if (validClient === false) {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-md mx-auto px-4 text-center">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Required</h1>
-          <p className="text-gray-600 mb-6">{validationError}</p>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-            <p><strong>Note:</strong> You must be an existing client to access this form.</p>
-            <p className="mt-2">Please click the correct link found in your email or purchase summary page.</p>
-          </div>
+  // --- Render UI ---
+  if (validClient === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Validating your access...</p>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-// Show the form only for valid clients (updated to show conditionally based whether the user is valid or not)
-return (
-  <div className="min-h-screen bg-gray-50 py-8">
-    {/* KEEP ALL YOUR EXISTING FORM CODE EXACTLY AS IS */}
-    <div className="max-w-2xl mx-auto px-4">
-      <h1 className="text-3xl font-bold text-center mb-8">
-        Personalized AI Habit Blueprint
-      </h1>
-      
-      {/* Progress Bar - KEEP EXISTING */}
-      <div className="mb-8">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
-          <span>Step {currentStep + 1} of {steps.length}</span>
-          <span>{Math.round(((currentStep + 1) / steps.length) * 100)}%</span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-          ></div>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
-        <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
-        
-        {/* Dynamic Field Rendering - KEEP EXISTING */}
-        <div className="mb-6">
-          {renderField(steps[currentStep])}
-        </div>
-
-        <div className="flex justify-between">
-          <button
-            type="button"
-            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-            disabled={currentStep === 0}
-            className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Back
-          </button>
-          
-          <button 
-            type="submit"
-            disabled={loading}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-          >
-            {loading ? 'Processing...' : 
-             currentStep === steps.length - 1 ? 'Generate My Blueprint' : 'Continue'}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-);
-  
-
-
-}
+  if (validClient === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md mx-auto px-4 text-center">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Required</h1>
+            <p className="text-gray-600 mb-6">{validationError}</p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded
