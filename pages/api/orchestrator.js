@@ -1,25 +1,106 @@
-import fetch from 'node-fetch';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(204)
+      .setHeader('Access-Control-Allow-Origin', '*')
+      .setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+      .setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      .end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const logs = [];
-  const { contactId, email, formData } = req.body || {};
+  const { contactId, email, formData } = req.body;
 
-  if (!contactId || !email) {
-    logs.push({ step: 'Input validation', status: 'FAIL', detail: 'Missing contactId or email' });
-    return res.status(400).json({ logs });
+  try {
+    // ===== STEP 1: VALIDATE CLIENT =====
+    if (!contactId || !email) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing contactId or email' 
+      });
+    }
+
+    // If this is just validation (empty formData), validate and return
+    if (!formData || Object.keys(formData).length === 0) {
+      const validationResult = await validateGHLClient(contactId, email);
+      return res.status(200).json(validationResult);
+    }
+
+    // ===== STEP 2: FULL PROCESSING =====
+    // Validate client first
+    const validationResult = await validateGHLClient(contactId, email);
+    if (!validationResult.valid) {
+      return res.status(400).json(validationResult);
+    }
+
+    const purchaseTags = validationResult.purchaseTags || [];
+
+    // ===== STEP 3: GENERATE TAGS =====
+    const generatedTags = generateTagsFromFormData(formData);
+    
+    // ===== STEP 4: CALL GEMINI AI =====
+    const analysisResult = await generateGeminiAnalysis(formData, purchaseTags, generatedTags);
+    
+    // ===== STEP 5: CREATE REPORT DATA =====
+    const reportData = {
+      reportId: contactId,
+      contactId,
+      email,
+      formData,
+      analysis: analysisResult.analysis,
+      generatedTags,
+      purchaseTags,
+      generatedAt: new Date().toISOString(),
+      htmlContent: convertAnalysisToHTML(analysisResult.analysis),
+      recommendations: analysisResult.recommendations,
+      aiSuccess: analysisResult.aiSuccess
+    };
+
+    // ===== STEP 6: SAVE TO R2 =====
+    const storageResult = await saveToR2(contactId, reportData);
+
+    // ===== STEP 7: RETURN SUCCESS RESPONSE =====
+    return res.status(200).json({
+      success: true,
+      action: 'analysis_complete',
+      reportId: contactId,
+      message: 'AI analysis completed successfully',
+      steps: {
+        tagGeneration: true,
+        aiAnalysis: analysisResult.aiSuccess,
+        storage: storageResult.storageSuccess
+      },
+      reportUrl: storageResult.reportUrl,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Orchestrator error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Processing failed',
+      details: error.message
+    });
   }
+}
 
-  logs.push({ step: 'Sending contactId/email to GHL', status: 'PENDING', detail: { contactId, email } });
+// ===== HELPER FUNCTIONS =====
 
+/**
+ * Validate GHL client
+ */
+async function validateGHLClient(contactId, email) {
   try {
     const GHL_API_KEY = process.env.GHL_API_KEY;
     const API_VERSION = '2021-07-28';
 
-    // 1️⃣ Fetch contact
+    // Fetch contact from GHL
     const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
       method: 'GET',
       headers: {
@@ -29,45 +110,22 @@ export default async function handler(req, res) {
       }
     });
 
-    const contactDataFull = await contactRes.json();
-
-    // Trim contact data to only what we need
-    const contactData = {
-      contactId: contactDataFull.id,
-      email: contactDataFull.email || contactDataFull.emailLowerCase,
-      firstName: contactDataFull.firstName,
-      lastName: contactDataFull.lastName,
-      tags: contactDataFull.tags || []
-    };
-
-    logs.push({ step: 'Validate contact', status: contactRes.ok ? 'SUCCESS' : 'FAIL', contact: contactData });
-
     if (!contactRes.ok) {
-      return res.status(404).json({ logs, error: 'Contact fetch failed' });
+      return { valid: false, error: 'Contact not found in GHL' };
     }
 
-    // 2️⃣ Email match (robust normalization)
-    const normalizeEmail = (str) =>
-      str.normalize('NFKC')
-         .replace(/\s+/g, '')
-         .toLowerCase();
+    const contactData = await contactRes.json();
 
-    const actualEmail = normalizeEmail(contactData.email);
-    const expectedEmail = normalizeEmail(email);
-    const emailMatches = actualEmail === expectedEmail;
+    // Normalize emails for comparison
+    const normalize = (str) => (str || '').trim().toLowerCase().replace(/\s+/g, '');
+    const actualEmail = normalize(contactData.email || contactData.emailLowerCase);
+    const expectedEmail = normalize(email);
 
-    logs.push({
-      step: 'Email match',
-      status: emailMatches ? 'SUCCESS' : 'FAIL',
-      expected: expectedEmail,
-      actual: actualEmail
-    });
-
-    if (!emailMatches) {
-      return res.status(403).json({ logs, error: 'Email does not match contact' });
+    if (actualEmail !== expectedEmail) {
+      return { valid: false, error: 'Email does not match contact' };
     }
 
-    // 3️⃣ Extract purchase tags
+    // Extract purchase tags
     const PURCHASE_TAGS = [
       'Bought_Main_Tracker',
       'Bought_Template_Vault',
@@ -81,26 +139,183 @@ export default async function handler(req, res) {
       .map(t => t.toLowerCase().trim())
       .filter(t => PURCHASE_TAGS.includes(t));
 
-    logs.push({ step: 'Extract purchase tags', status: 'SUCCESS', purchaseTags });
-
-    // 4️⃣ Send tags to GHL (simulate)
-    logs.push({ step: 'Send tags to GHL', status: 'SUCCESS', sentTags: purchaseTags });
-
-    // 5️⃣ Gemini AI analysis (simulate fallback)
-    const aiResult = {
-      summary: 'Generated AI 30-day personalized blueprint successfully.',
-      insights: ['Habit stacking', 'Weekly review', 'Focus blocks']
+    return {
+      valid: true,
+      message: 'Client validated successfully',
+      purchaseTags
     };
-    logs.push({ step: 'Gemini AI analysis', status: 'SUCCESS', result: aiResult });
 
-    // 6️⃣ Upload to R2 (simulate)
-    const uploaded = true;
-    const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/test-file.json`;
-    logs.push({ step: 'Upload results to R2', status: 'SUCCESS', uploaded, publicUrl });
+  } catch (error) {
+    console.error('GHL validation error:', error);
+    return { valid: false, error: 'Unable to validate client' };
+  }
+}
 
-    return res.status(200).json({ logs });
-  } catch (err) {
-    logs.push({ step: 'Orchestrator error', status: 'FAIL', error: err.toString() });
-    return res.status(500).json({ logs, error: 'Orchestrator failed' });
+/**
+ * Generate tags from form data
+ */
+function generateTagsFromFormData(formData) {
+  const tags = [];
+
+  // Goal Tags
+  if (formData.primaryGoal?.includes('Finances')) tags.push('Goal_Financial_Clarity');
+  if (formData.primaryGoal?.includes('Fitness') || formData.primaryGoal?.includes('Health')) tags.push('Goal_Health_Fitness');
+  if (formData.primaryGoal?.includes('Learning') || formData.primaryGoal?.includes('Growth')) tags.push('Goal_Learning_Growth');
+  if (formData.primaryGoal?.includes('Focus') || formData.primaryGoal?.includes('Productivity')) {
+    tags.push('Goal_Productivity_Projects');
+  }
+
+  // Frustration Tags
+  if (formData.biggestFrustration?.includes('consistency')) tags.push('Obstacle_Discipline_Consistency');
+  if (formData.biggestFrustration?.includes('overwhelm')) tags.push('Obstacle_Overwhelm');
+  if (formData.biggestFrustration?.includes('accountability')) tags.push('Obstacle_Accountability_Lacking');
+
+  return [...new Set(tags)];
+}
+
+/**
+ * Generate AI analysis using Gemini
+ */
+async function generateGeminiAnalysis(formData, purchaseTags, generatedTags) {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    // Try different models
+    let model;
+    try {
+      model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
+    } catch {
+      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    }
+
+    // Limit output with maxTokens
+    const generationConfig = {
+      maxOutputTokens: 2000, // Limit to ~1500 words
+      temperature: 0.7,
+    };
+
+    const prompt = `
+Create a personalized habit blueprint for someone who wants to improve their ${formData.primaryGoal}.
+
+Their main challenge: ${formData.biggestFrustration}
+Their 30-day focus: ${formData.thirtyDayFocus}
+Their future vision: ${formData.futureVision}
+
+Please provide a comprehensive but practical blueprint with:
+1. Quick wins for immediate progress
+2. A specific 30-day implementation plan
+3. Strategies for maintaining consistency
+4. Recommended tracking methods
+
+Keep it encouraging and actionable. Focus on practical steps.
+Be concise and limit to approximately 1000 words.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const analysis = await result.response.text();
+
+    // Generate recommendations
+    const recommendations = {
+      templateVault: !purchaseTags.includes('bought_template_vault') && generatedTags.some(tag => tag.startsWith('Goal_')),
+      accountability: !purchaseTags.includes('bought_accountability_system') && generatedTags.includes('Obstacle_Accountability_Lacking')
+    };
+
+    return {
+      analysis,
+      recommendations,
+      aiSuccess: true
+    };
+
+  } catch (error) {
+    console.error('Gemini AI error:', error);
+    
+    // Fallback analysis
+    const fallbackAnalysis = `# Personalized Habit Blueprint for ${formData.primaryGoal}
+
+## Quick Start Guide
+Based on your goal to improve **${formData.primaryGoal}**, here's your action plan:
+
+### Your Challenge
+You mentioned: "${formData.biggestFrustration}"
+
+### 30-Day Action Plan
+**Week 1-2: Foundation Building**
+- Start with small, consistent daily sessions
+- Use simple tracking methods
+- Identify what works for you
+
+**Week 3-4: Consistency Building**  
+- Gradually increase your efforts
+- Implement accountability checks
+- Refine your approach
+
+## Success Tips
+- Focus on consistency over perfection
+- Celebrate small daily wins
+- Adjust your approach weekly
+
+You've got this! Start small and stay consistent.`;
+
+    return {
+      analysis: fallbackAnalysis,
+      recommendations: {},
+      aiSuccess: false
+    };
+  }
+}
+
+/**
+ * Convert analysis to HTML
+ */
+function convertAnalysisToHTML(analysis) {
+  return analysis
+    .split('\n')
+    .map(line => {
+      if (line.startsWith('### ')) return `<h3 class="text-xl font-bold mt-6 mb-3 text-green-700">${line.slice(4)}</h3>`;
+      if (line.startsWith('## ')) return `<h2 class="text-2xl font-bold mt-8 mb-4 text-green-800">${line.slice(3)}</h2>`;
+      if (line.startsWith('# ')) return `<h1 class="text-3xl font-bold mt-10 mb-6 text-green-900">${line.slice(2)}</h1>`;
+      if (line.startsWith('- ')) return `<li class="ml-4 mb-2">${line.slice(2)}</li>`;
+      if (line.startsWith('**') && line.endsWith('**')) return `<strong class="font-bold">${line.slice(2, -2)}</strong>`;
+      return `<p class="mb-4">${line}</p>`;
+    })
+    .join('');
+}
+
+/**
+ * Save report to R2
+ */
+async function saveToR2(contactId, reportData) {
+  try {
+    const jsonContent = JSON.stringify(reportData, null, 2);
+    const r2Url = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET_NAME}/reports/${contactId}/report.json`;
+    
+    // Create SHA256 hash for R2 authentication
+    const contentHash = crypto.createHash('sha256').update(jsonContent).digest('hex');
+    
+    const response = await fetch(r2Url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${process.env.R2_ACCESS_KEY_ID}`,
+        'Content-Type': 'application/json',
+        'x-amz-content-sha256': contentHash,
+      },
+      body: jsonContent
+    });
+
+    if (!response.ok) {
+      throw new Error(`R2 upload failed: ${response.status} ${response.statusText}`);
+    }
+
+    return {
+      storageSuccess: true,
+      reportUrl: `${process.env.R2_PUBLIC_DOMAIN}/reports/${contactId}/report.json`
+    };
+
+  } catch (error) {
+    console.error('R2 storage error:', error);
+    return {
+      storageSuccess: false,
+      reportUrl: `https://ai.habitmasterysystem.com/report/${contactId}`
+    };
   }
 }
