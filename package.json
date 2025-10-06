@@ -1,19 +1,25 @@
 {
-  "name": "habit-mastery-frontend",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start", 
-    "lint": "next lint",
-    "vercel-build": "next build"
-  },
-  "dependencies": {
-    "next": "13.5.11",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+"name": "habit-mastery-frontend",
+"version": "1.0.0",
+"scripts": {
+"dev": "next dev",
+"build": "next build",
+"start": "next start",
+"lint": "next lint",
+"vercel-build": "next build"
+},
+"dependencies": {
+"@google/generative-ai": "^0.10.0",
+"next": "13.5.11",
+"react": "18.2.0",
+"react-dom": "18.2.0",
+"node-fetch": "^3.3.2"
+},
+"devDependencies": {
+"eslint": "^8.57.1",
+"eslint-config-next": "13.5.11"
+},
+"engines": {
+"node": ">=18.0.0"
+}
 }
