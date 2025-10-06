@@ -1,4 +1,3 @@
-// pages/report/[id].js - Dynamic Report Page
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -17,10 +16,8 @@ export default function ReportPage() {
 
   const fetchReport = async (reportId) => {
     try {
-      // Fetch JSON from Cloudflare R2 via public URL
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/reports/${reportId}/report.json`
-
       );
       
       if (!response.ok) {
@@ -37,22 +34,18 @@ export default function ReportPage() {
   };
 
   const handleDownloadPDF = () => {
-    // Track PDF download and open PDF
-    fetch(`/api/track-click`, {
+    // For now, just track the click - PDF generation will be added later
+    fetch('/api/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportId: id, linkType: 'pdf_download' })
     });
     
-    window.open(
-      `https://pub-5fd9b7e823f34897ac9194436fa60593.r2.dev/reports/${id}/report.pdf`,
-      '_blank'
-    );
+    alert('PDF download will be available soon!');
   };
 
   const handleLinkClick = (type) => {
-    // Track upsell link clicks
-    fetch(`/api/track-click`, {
+    fetch('/api/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportId: id, linkType: type })
@@ -73,6 +66,12 @@ export default function ReportPage() {
       <div className="text-center text-red-600">
         <h2 className="text-xl font-bold mb-2">Report Not Found</h2>
         <p>{error}</p>
+        <button 
+          onClick={() => router.push('/')}
+          className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg"
+        >
+          Go Back to Form
+        </button>
       </div>
     </div>
   );
@@ -130,6 +129,22 @@ export default function ReportPage() {
               👥 Get Accountability System
             </button>
           )}
+        </div>
+
+        {/* Debug Info (remove in production) */}
+        <div className="mt-8 p-4 bg-gray-100 rounded-lg text-sm">
+          <details>
+            <summary className="cursor-pointer font-semibold">Debug Info</summary>
+            <pre className="mt-2 whitespace-pre-wrap">
+              {JSON.stringify({
+                reportId: id,
+                aiSuccess: report.aiSuccess,
+                storageSuccess: true,
+                recommendations: report.recommendations,
+                purchaseTags: report.purchaseTags
+              }, null, 2)}
+            </pre>
+          </details>
         </div>
       </div>
     </div>
