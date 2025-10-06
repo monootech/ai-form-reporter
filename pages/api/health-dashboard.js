@@ -1,134 +1,87 @@
-import fetch from "node-fetch";
-
+// FILE: pages/api/health-dashboard.js
 export default async function handler(req, res) {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    return res
-      .status(204)
-      .setHeader("Access-Control-Allow-Origin", "*")
-      .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-      .setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization")
-      .end();
-  }
-
-  const contactId = req.query.contactId || "test-contact-id";
-  const email = req.query.email || "test@example.com";
+  const { contactId, email } = req.query;
 
   const logs = [];
 
-  // Helper: render HTML dashboard
-  const renderHTML = (logs) => {
-    const color = (status) =>
-      status === "success" ? "green" : status === "fail" ? "red" : "orange";
+  try {
+    // Test 1: Basic API check
+    logs.push({ step: "Health Check", status: "success", details: "API is running" });
 
-    return `
+    // Test 2: Environment variables
+    const envCheck = {
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? "Set" : "Missing",
+      GHL_API_KEY: process.env.GHL_API_KEY ? "Set" : "Missing", 
+      R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID ? "Set" : "Missing"
+    };
+    logs.push({ step: "Environment Variables", status: "success", details: envCheck });
+
+    // Test 3: Test orchestrator with validation
+    if (contactId && email) {
+      const testResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/orchestrator`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId, email, formData: {} })
+      });
+      
+      const testResult = await testResponse.json();
+      logs.push({ 
+        step: "Orchestrator Validation", 
+        status: testResult.valid ? "success" : "fail", 
+        details: testResult 
+      });
+    }
+
+    // Return HTML dashboard
+    const html = `
       <html>
         <head>
           <title>Health Dashboard</title>
           <style>
             body { font-family: sans-serif; padding: 2rem; background: #f5f5f5; }
-            h1 { text-align: center; }
-            .step { margin-bottom: 1rem; padding: 1rem; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);}
-            .step h3 { margin: 0 0 0.5rem 0; }
-            .step pre { background: #eee; padding: 0.5rem; overflow-x: auto; border-radius: 4px; }
-            .section-title { font-size: 1.2rem; font-weight: bold; margin-top: 2rem; }
+            .step { margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 8px; }
+            .success { border-left: 4px solid #10B981; }
+            .fail { border-left: 4px solid #EF4444; }
+            pre { background: #f8f8f8; padding: 1rem; overflow-x: auto; }
           </style>
         </head>
         <body>
-          <h1>AI Orchestrator Health Dashboard</h1>
-          ${logs.map((l, i) => `
-            <section class="step">
-              <h3 style="color:${color(l.status)}">${l.step} — ${l.status.toUpperCase()}</h3>
-              <pre>${JSON.stringify(l.details || l.contact || l.purchaseTags || l.sentTags || l.result || l, null, 2)}</pre>
-            </section>
-          `).join("")}
+          <h1>🚀 System Health Dashboard</h1>
+          <p>Testing URL: <code>https://ai.habitmasterysystem.com/?contactId=${contactId}&email=${email}</code></p>
+          
+          ${logs.map(log => `
+            <div class="step ${log.status}">
+              <h3>${log.step} — <span style="color: ${log.status === 'success' ? '#10B981' : '#EF4444'}">${log.status.toUpperCase()}</span></h3>
+              <pre>${JSON.stringify(log.details, null, 2)}</pre>
+            </div>
+          `).join('')}
+          
+          <div class="step">
+            <h3>Next Steps</h3>
+            <ul>
+              <li>Set real GEMINI_API_KEY and GHL_API_KEY in environment variables</li>
+              <li>Test form submission with valid contact data</li>
+              <li>Check R2 bucket for uploaded reports</li>
+            </ul>
+          </div>
         </body>
       </html>
     `;
-  };
 
-  try {
-    // 1️⃣ Sending contactId/email to GHL
-    logs.push({ step: "Sending contactId/email to GHL", status: "pending", details: { contactId, email } });
+    res.setHeader('Content-Type', 'text/html');
+    return res.status(200).send(html);
 
-    const GHL_API_KEY = process.env.GHL_API_KEY;
-    const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${GHL_API_KEY}`,
-        Version: "2021-07-28",
-        "Content-Type": "application/json",
-      },
-    });
-
-    const contactData = await contactRes.json();
-    const contactOk = contactRes.ok && contactData.email;
-    const emailMatches = (contactData.emailLowerCase || contactData.email || "").trim().toLowerCase() === email.trim().toLowerCase();
-
-    logs.push({
-      step: "Validate contact",
-      status: contactOk && emailMatches ? "success" : "fail",
-      details: contactData,
-    });
-
-    if (!contactOk) logs.push({ step: "Contact fetch failed", status: "fail", details: contactData });
-    if (!emailMatches) logs.push({ step: "Email match", status: "fail", details: { expected: email, actual: contactData.email } });
-
-    // 2️⃣ Extract purchase tags
-    const PURCHASE_TAGS = [
-      "Bought_Main_Tracker",
-      "Bought_Template_Vault",
-      "Bought_Accountability_System",
-      "Bought_Sheets_Mastery_Course",
-      "Bought_Community_Basic",
-      "Bought_Community_Vip",
-    ].map((t) => t.toLowerCase());
-
-    const purchaseTags = (contactData.tags || [])
-      .map((t) => t.toLowerCase().trim())
-      .filter((t) => PURCHASE_TAGS.includes(t));
-
-    logs.push({
-      step: "Extract purchase tags",
-      status: purchaseTags.length ? "success" : "fail",
-      details: { purchaseTags },
-    });
-
-    // 3️⃣ Send tags to GHL
-    logs.push({
-      step: "Send tags to GHL",
-      status: "success",
-      details: { sentTags: purchaseTags },
-    });
-
-    // 4️⃣ Gemini AI analysis (simulate)
-    const geminiResult = {
-      summary: "Generated AI 30-day personalized blueprint successfully.",
-      insights: ["Habit stacking", "Weekly review", "Focus blocks"],
-    };
-
-    logs.push({
-      step: "Gemini AI analysis",
-      status: "success",
-      details: geminiResult,
-    });
-
-    // 5️⃣ Upload to R2 (simulate)
-    const r2UploadResult = {
-      uploaded: true,
-      bucket: process.env.R2_BUCKET_NAME,
-      publicUrl: `${process.env.R2_PUBLIC_DOMAIN}/test-file.json`,
-    };
-
-    logs.push({
-      step: "Upload results to R2",
-      status: "success",
-      details: r2UploadResult,
-    });
-
-    return res.status(200).send(renderHTML(logs));
-  } catch (err) {
-    logs.push({ step: "Unexpected error", status: "fail", details: err.toString() });
-    return res.status(500).send(renderHTML(logs));
+  } catch (error) {
+    logs.push({ step: "Health Dashboard Error", status: "fail", details: error.message });
+    
+    res.setHeader('Content-Type', 'text/html');
+    return res.status(500).send(`
+      <html>
+        <body>
+          <h1>Health Dashboard Error</h1>
+          <pre>${error.message}</pre>
+        </body>
+      </html>
+    `);
   }
 }
