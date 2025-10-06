@@ -28,36 +28,54 @@ const [validClient, setValidClient] = useState(null); // null = checking, true =
 const [validationError, setValidationError] = useState('');
 
 useEffect(() => {
-  const validateClient = async () => {
-    // Check if required parameters are missing
-    if (!contactId || !email) {
+
+
+
+
+// Start Added new code block
+
+const validateClient = async () => {
+  if (!contactId || !email) {
+    setValidClient(false);
+    setValidationError('Missing required parameters. Please use the link sent to your email.');
+    return;
+  }
+
+  try {
+    // Call your Vercel API
+    const response = await fetch('/api/validate-client', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contactId, email })
+    });
+
+    const result = await response.json();
+
+    if (result.valid) {
+      setValidClient(true);
+    } else {
       setValidClient(false);
-      setValidationError('Missing required parameters. Please use the link sent to your email.');
-      return;
+      setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
     }
 
-    try {
-      // Validate with your backend/API
-      const response = await fetch('/api/validate-client', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contactId, email })
-      });
+    console.log('Validation result:', result); // optional: debug
+  } catch (error) {
+    console.error('Validation error:', error);
+    setValidClient(false);
+    setValidationError('Unable to validate your access. Please try again or contact support.');
+  }
+};
 
-      const result = await response.json();
-      
-      if (result.valid) {
-        setValidClient(true);
-      } else {
-        setValidClient(false);
-        setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
-      }
-    } catch (error) {
-      console.error('Validation error:', error);
-      setValidClient(false);
-      setValidationError('Unable to validate your access. Please try again or contact support.');
-    }
-  };
+
+// END Added New Code Block
+
+
+
+
+
+
+
+
 
   if (contactId && email) {
     validateClient();
