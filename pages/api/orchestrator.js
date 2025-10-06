@@ -49,20 +49,16 @@ export default async function handler(req, res) {
       return res.status(404).json({ logs, error: 'Contact fetch failed' });
     }
 
-    // Step 2️⃣: Email match (normalized)
-    const actualEmail = (contactData.emailLowerCase || contactData.email || '')
-      .normalize('NFKC')
-      .replace(/\u00A0/g, '') // remove non-breaking spaces
-      .trim()
-      .toLowerCase();
+const normalizeEmail = (str) => 
+  str.normalize('NFKC')            // Unicode normalization
+     .replace(/\s+/g, '')          // Remove all spaces
+     .toLowerCase();               // Lowercase
 
-    const expectedEmail = email
-      .normalize('NFKC')
-      .replace(/\u00A0/g, '')
-      .trim()
-      .toLowerCase();
+const actualEmail = normalizeEmail(contactData.emailLowerCase || contactData.email || '');
+const expectedEmail = normalizeEmail(email);
 
-    const emailMatches = actualEmail === expectedEmail;
+const emailMatches = actualEmail === expectedEmail;
+
 
     logs.push({
       step: 'Email match',
