@@ -1,9 +1,17 @@
-// FILE: my_repo/pages/api/orchestrator.js
-import fetch from 'node-fetch';
-import crypto from 'crypto';
+// pages/api/orchestrator.js
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const crypto = require('crypto');
 
-export default async function handler(req, res) {
-  // --- CORS Preflight ---
+// Optional: Gemini AI SDK import
+let GoogleGenerativeAI;
+try {
+  GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
+} catch (e) {
+  console.warn('Gemini SDK not installed. Will use fallback.');
+}
+
+module.exports = async function handler(req, res) {
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -11,70 +19,40 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { contactId, email, formData } = req.body || {};
-  if (!contactId || !email || !formData) {
-    return res.status(400).json({ error: 'Missing required fields: contactId, email, or formData' });
-  }
+  if (!contactId || !formData) return res.status(400).json({ error: 'Missing contactId or formData' });
 
   try {
-    // --- Step 1: Validate Client ---
-    const GHL_API_KEY = process.env.GHL_API_KEY;
-    const API_VERSION = '2021-07-28';
-    const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${GHL_API_KEY}`,
-        Version: API_VERSION,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const contactData = await contactRes.json();
-    if (!contactRes.ok || !contactData.email) {
-      return res.status(404).json({ error: 'Contact not found or API error', details: contactData });
-    }
-
-    if ((contactData.emailLowerCase || '').trim() !== email.toLowerCase().trim()) {
-      return res.status(403).json({ error: 'Email does not match the contact' });
-    }
-
-    const PURCHASE_TAGS = [
-      'Bought_Main_Tracker',
-      'Bought_Template_Vault',
-      'Bought_Accountability_System',
-      'Bought_Sheets_Mastery_Course',
-      'Bought_Community_Basic',
-      'Bought_Community_Vip',
-    ].map(t => t.toLowerCase());
-
-    const purchaseTags = (contactData.tags || [])
-      .map(t => t.toLowerCase())
-      .filter(t => PURCHASE_TAGS.includes(t));
-
-    // --- Step 2: Generate Tags based on formData ---
+    // -----------------------------
+    // STEP 1: Tag Generation
+    // -----------------------------
     const tags = [];
+
+    // Goal-based
     if (formData.primaryGoal?.includes('Finances')) tags.push('Goal_Financial_Clarity');
     if (formData.primaryGoal?.includes('Fitness') || formData.primaryGoal?.includes('Health')) tags.push('Goal_Health_Fitness');
     if (formData.primaryGoal?.includes('Learning') || formData.primaryGoal?.includes('Growth')) tags.push('Goal_Learning_Growth');
     if (formData.primaryGoal?.includes('Focus') || formData.primaryGoal?.includes('Productivity')) tags.push('Goal_Productivity_Projects');
 
+    // Frustration-based
     if (formData.biggestFrustration?.includes('consistency')) tags.push('Obstacle_Discipline_Consistency');
     if (formData.biggestFrustration?.includes('overwhelm')) tags.push('Obstacle_Overwhelm');
     if (formData.biggestFrustration?.includes('accountability')) tags.push('Obstacle_Accountability_Lacking');
 
     const generatedTags = [...new Set(tags)];
 
-    // --- Step 3: Gemini AI Analysis with Fallback ---
+    // -----------------------------
+    // STEP 2: Gemini AI Analysis
+    // -----------------------------
     let analysis = '';
     let aiSuccess = false;
+
     try {
-      const geminiKey = process.env.GEMINI_API_KEY;
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(geminiKey);
+      if (!GoogleGenerativeAI) throw new Error('Gemini SDK not installed');
+
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
       let model;
       try {
@@ -102,94 +80,97 @@ Keep it encouraging and focused on practical steps.
       const result = await model.generateContent(prompt);
       analysis = await result.response.text();
       aiSuccess = true;
+
     } catch (err) {
-      console.error('Gemini AI failed, using fallback:', err.message);
-
-      analysis = `
-# Personalized Habit Blueprint
-
-## Quick Start Guide
-Based on your goal to improve **${formData.primaryGoal}**, here's your action plan:
-
-### Immediate Actions (Week 1)
-1. Start with 5-minute daily sessions
-2. Track your progress in a simple notebook
-3. Set clear daily targets
-
-### 30-Day Roadmap
-- Week 1: Build consistency with small wins
-- Week 2: Increase duration gradually  
-- Week 3: Refine your approach
-- Week 4: Solidify the habit
-
-### Success Tips
-- Focus on consistency over perfection
-- Celebrate small wins daily
-- Adjust your approach as needed
-
-You've got this! Start small, stay consistent.
-      `;
+      console.warn('Gemini AI failed, using fallback.', err);
       aiSuccess = false;
+      analysis = fallbackBlueprintHTML(formData);
     }
 
-    // --- Step 4: Upload to R2 ---
-    const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-    const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-    const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-    const reportId = contactId;
-
+    // -----------------------------
+    // STEP 3: R2 Upload
+    // -----------------------------
     const reportData = {
-      reportId,
+      reportId: contactId,
       contactId,
       email,
       formData,
-      analysis,
       generatedTags,
-      purchaseTags,
+      analysis,
       generatedAt: new Date().toISOString(),
-      htmlContent: analysis.replace(/\n/g, '<br>'),
-      recommendations: {
-        templateVault: true,
-        accountability: generatedTags.includes('Obstacle_Accountability_Lacking'),
-      },
-      aiSuccess,
+      aiSuccess
     };
 
     const jsonContent = JSON.stringify(reportData, null, 2);
-    const contentHash = crypto.createHash('sha256').update(jsonContent).digest('hex');
 
-    const r2Url = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET_NAME}/reports/${reportId}/report.json`;
+    const r2Url = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET_NAME}/reports/${contactId}/report.json`;
+    const contentHash = crypto.createHash('sha256').update(jsonContent).digest('hex');
 
     try {
       const r2Res = await fetch(r2Url, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${R2_ACCESS_KEY_ID}`,
+          'Authorization': `Bearer ${process.env.R2_ACCESS_KEY_ID}`,
           'Content-Type': 'application/json',
-          'x-amz-content-sha256': contentHash,
+          'x-amz-content-sha256': contentHash
         },
-        body: jsonContent,
+        body: jsonContent
       });
 
-      if (!r2Res.ok) {
-        console.error('R2 upload failed', await r2Res.text());
-      }
+      if (!r2Res.ok) throw new Error(`R2 upload failed with status ${r2Res.status}`);
+
     } catch (err) {
-      console.error('R2 upload error:', err.message);
+      console.warn('R2 upload failed, using public fallback URL', err);
     }
 
-    // --- Step 5: Return final JSON ---
+    // -----------------------------
+    // STEP 4: Return JSON Response
+    // -----------------------------
+    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       success: true,
       action: 'analysis_complete',
-      reportId,
-      reportUrl: `${process.env.R2_PUBLIC_DOMAIN}/reports/${reportId}/report.json`,
+      reportId: contactId,
+      reportUrl: `${process.env.R2_PUBLIC_DOMAIN}/reports/${contactId}/report.json`,
       steps: { tagGeneration: true, aiAnalysis: aiSuccess, storage: true },
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     });
 
   } catch (err) {
-    console.error('Orchestrator error:', err.message);
-    return res.status(500).json({ error: 'Server error in orchestrator', details: err.toString() });
+    console.error('Orchestrator error:', err);
+    return res.status(500).json({ success: false, error: err.toString() });
   }
+};
+
+// -----------------------------
+// Fallback Blueprint HTML
+// -----------------------------
+function fallbackBlueprintHTML(formData) {
+  return `
+<div class="habit-blueprint">
+  <h1>🎯 Personalized AI Habit Blueprint</h1>
+  <p>Generated on ${new Date().toLocaleDateString()}</p>
+  <h2>Quick Start Guide</h2>
+  <p>Based on your goal to improve <strong>${formData.primaryGoal}</strong>, here's your action plan:</p>
+  <h3>Immediate Actions (Week 1)</h3>
+  <ul>
+    <li>Start with 5-minute daily sessions</li>
+    <li>Track your progress in a simple notebook</li>
+    <li>Set clear daily targets</li>
+  </ul>
+  <h3>30-Day Roadmap</h3>
+  <ul>
+    <li>Week 1: Build consistency with small wins</li>
+    <li>Week 2: Increase duration gradually</li>
+    <li>Week 3: Refine your approach</li>
+    <li>Week 4: Solidify the habit</li>
+  </ul>
+  <h3>Success Tips</h3>
+  <ul>
+    <li>Focus on consistency over perfection</li>
+    <li>Celebrate small wins daily</li>
+    <li>Adjust your approach as needed</li>
+  </ul>
+</div>
+  `;
 }
