@@ -95,10 +95,18 @@ export default async function handler(req, res) {
 /**
  * Validate GHL client
  */
+
+
+
+/**
+ * Validate GHL client with better email handling
+ */
 async function validateGHLClient(contactId, email) {
   try {
     const GHL_API_KEY = process.env.GHL_API_KEY;
     const API_VERSION = '2021-07-28';
+
+    console.log('🔍 Validating GHL client:', { contactId, email });
 
     // Fetch contact from GHL
     const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
@@ -110,19 +118,64 @@ async function validateGHLClient(contactId, email) {
       }
     });
 
+    console.log('📡 GHL Response status:', contactRes.status);
+
     if (!contactRes.ok) {
-      return { valid: false, error: 'Contact not found in GHL' };
+      const errorText = await contactRes.text();
+      console.error('❌ GHL API error:', errorText);
+      return { 
+        valid: false, 
+        error: `Contact not found in GHL (Status: ${contactRes.status})` 
+      };
     }
 
     const contactData = await contactRes.json();
+    console.log('📋 GHL Contact data:', {
+      id: contactData.id,
+      email: contactData.email,
+      emailLowerCase: contactData.emailLowerCase,
+      tags: contactData.tags
+    });
 
-    // Normalize emails for comparison
-    const normalize = (str) => (str || '').trim().toLowerCase().replace(/\s+/g, '');
-    const actualEmail = normalize(contactData.email || contactData.emailLowerCase);
-    const expectedEmail = normalize(email);
+    // Get email from contact data - try multiple fields
+    const contactEmail = contactData.email || contactData.emailLowerCase || contactData.contactEmail;
+    
+    if (!contactEmail) {
+      console.error('❌ No email found in contact data');
+      return { 
+        valid: false, 
+        error: 'No email found in contact data' 
+      };
+    }
 
-    if (actualEmail !== expectedEmail) {
-      return { valid: false, error: 'Email does not match contact' };
+    // Improved email normalization
+    const normalizeEmail = (emailStr) => {
+      if (!emailStr) return '';
+      return emailStr
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '') // Remove any spaces
+        .replace(/\.(?=.*@)/g, '') // Remove dots in local part (gmail specific)
+        .replace(/\+.*(?=@)/, ''); // Remove + aliases (gmail specific)
+    };
+
+    const normalizedContactEmail = normalizeEmail(contactEmail);
+    const normalizedInputEmail = normalizeEmail(email);
+
+    console.log('📧 Email comparison:', {
+      input: email,
+      normalizedInput: normalizedInputEmail,
+      contact: contactEmail,
+      normalizedContact: normalizedContactEmail,
+      match: normalizedContactEmail === normalizedInputEmail
+    });
+
+    if (normalizedContactEmail !== normalizedInputEmail) {
+      return { 
+        valid: false, 
+        error: `Email does not match contact. Contact email: ${contactEmail}, Provided: ${email}` 
+      };
     }
 
     // Extract purchase tags
@@ -136,20 +189,31 @@ async function validateGHLClient(contactId, email) {
     ].map(t => t.toLowerCase());
 
     const purchaseTags = (contactData.tags || [])
-      .map(t => t.toLowerCase().trim())
+      .map(t => t.toString().toLowerCase().trim())
       .filter(t => PURCHASE_TAGS.includes(t));
+
+    console.log('🏷️ Purchase tags found:', purchaseTags);
 
     return {
       valid: true,
       message: 'Client validated successfully',
-      purchaseTags
+      purchaseTags,
+      contactEmail: contactEmail // Return actual email for debugging
     };
 
   } catch (error) {
-    console.error('GHL validation error:', error);
-    return { valid: false, error: 'Unable to validate client' };
+    console.error('❌ GHL validation error:', error);
+    return { 
+      valid: false, 
+      error: `Unable to validate client: ${error.message}` 
+    };
   }
 }
+
+
+
+
+
 
 /**
  * Generate tags from form data
