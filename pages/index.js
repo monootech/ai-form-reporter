@@ -21,7 +21,7 @@ export default function Home() {
   });
 
 
-  // START OF NEW Codes added
+// START OF UPDATED VALIDATION + CACHING LOGIC
 
   
 const [validClient, setValidClient] = useState(null); // null = checking, true = valid, false = invalid
@@ -36,6 +36,33 @@ useEffect(() => {
       return;
     }
 
+
+   const cacheKey = `clientValidation-${contactId}-${email}`;  // Added for caching logic    
+   const cached = localStorage.getItem(cacheKey);             // Added for caching logic
+
+
+        if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        const now = Date.now();
+        const expiry = 62 * 60 * 1000; // 62 minutes in milliseconds, we can change it, after 62 min workflow step_validity will run again as the cache expires.
+
+        if (now - data.timestamp < expiry) {
+          setValidClient(data.valid);
+          setValidationError(data.error || '');
+          return; // Use cached result
+        } else {
+          // Cache expired, remove it
+          localStorage.removeItem(cacheKey);
+        }
+      } catch (err) {
+        console.warn('Error parsing cache:', err);
+        localStorage.removeItem(cacheKey);
+      }
+    }
+
+    // No valid cache, perform API validation
+    
     try {
       // Validate with your backend/API
       const response = await fetch('/api/validate-client', {
@@ -48,9 +75,15 @@ useEffect(() => {
       
       if (result.valid) {
         setValidClient(true);
+        localStorage.setItem(cacheKey, JSON.stringify({ valid: true, timestamp: Date.now() }));
       } else {
         setValidClient(false);
         setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
+
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ valid: false, error: result.error, timestamp: Date.now() })
+        ); 
       }
     } catch (error) {
       console.error('Validation error:', error);
@@ -67,7 +100,7 @@ useEffect(() => {
   }
 }, [contactId, email]);
 
-// END OF NEW Codes added  
+// END OF UPDATED VALIDATION + CACHING LOGIC
 
   
   const steps = [
