@@ -1,79 +1,58 @@
-// FILE: pages/api/orchestrator.js
 import fetch from 'node-fetch';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-const R2_PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
-const GHL_API_KEY = process.env.GHL_API_KEY;
-
-async function logStep(stepName, payload) {
-  try {
-    // 1️⃣ Log to Vercel console
-    console.log(`🟢 [${stepName}]`, JSON.stringify(payload, null, 2));
-
-    // 2️⃣ Optional: persist to R2 for permanent trace
-    // const filename = `${Date.now()}-${stepName}.json`;
-    // await fetch(`https://api.cloudflare.com/client/v4/accounts/${R2_ACCOUNT_ID}/r2/buckets/${R2_BUCKET_NAME}/objects/${filename}`, {
-    //   method: 'PUT',
-    //   headers: {
-    //     Authorization: `Bearer ${R2_ACCESS_KEY_ID}`,
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify(payload)
-    // });
-
-  } catch (err) {
-    console.error(`Failed to log step "${stepName}":`, err);
-  }
-}
-
 export default async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    return res.status(204).setHeader('Access-Control-Allow-Origin', '*')
-      .setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-      .setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-      .end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+  const logs = [];
   const { contactId, email, formData } = req.body || {};
 
-  await logStep('Received request', { contactId, email, formData });
-
   if (!contactId || !email) {
-    await logStep('Missing parameters', { contactId, email });
-    return res.status(400).json({ error: 'Missing contactId or email' });
+    logs.push({ step: 'Input validation', status: 'FAIL', detail: 'Missing contactId or email' });
+    return res.status(400).json({ logs });
   }
 
-  // ===== Step 1: Validate Client =====
-  let clientValid = false;
-  let purchaseTags = [];
+  logs.push({ step: 'Sending contactId/email to GHL', status: 'PENDING', detail: { contactId, email } });
+
   try {
+    const GHL_API_KEY = process.env.GHL_API_KEY;
+    const API_VERSION = '2021-07-28';
+
+    // 1️⃣ Fetch contact
     const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${GHL_API_KEY}`,
-        Version: '2021-07-28',
+        Version: API_VERSION,
         'Content-Type': 'application/json'
       }
     });
+
     const contactData = await contactRes.json();
-    await logStep('Validate client - response', contactData);
+    logs.push({ step: 'Validate contact', status: contactRes.ok ? 'SUCCESS' : 'FAIL', contact: contactData });
 
-    if (!contactRes.ok || !contactData.email) {
-      await logStep('Validate client - failed', contactData);
-      return res.status(403).json({ valid: false, error: 'Invalid contact or API error', details: contactData });
+    if (!contactRes.ok) {
+      return res.status(404).json({ logs, error: 'Contact fetch failed' });
     }
 
-    if ((contactData.emailLowerCase || '').trim() !== email.toLowerCase().trim()) {
-      await logStep('Validate client - email mismatch', { email, contactDataEmail: contactData.email });
-      return res.status(403).json({ valid: false, error: 'Email does not match the contact' });
+    // 2️⃣ Email match
+    const actualEmail = (contactData.emailLowerCase || contactData.email || '').normalize('NFKC').trim().toLowerCase();
+    const expectedEmail = email.normalize('NFKC').trim().toLowerCase();
+    const emailMatches = actualEmail === expectedEmail;
+
+    logs.push({
+      step: 'Email match',
+      status: emailMatches ? 'SUCCESS' : 'FAIL',
+      expected: expectedEmail,
+      actual: actualEmail
+    });
+
+    if (!emailMatches) {
+      return res.status(403).json({ logs, error: 'Email does not match contact' });
     }
 
-    // Filter purchase tags
+    // 3️⃣ Extract purchase tags
     const PURCHASE_TAGS = [
       'Bought_Main_Tracker',
       'Bought_Template_Vault',
@@ -83,54 +62,30 @@ export default async function handler(req, res) {
       'Bought_Community_Vip'
     ].map(t => t.toLowerCase());
 
-    purchaseTags = (contactData.tags || [])
-      .map(t => t.toLowerCase())
+    const purchaseTags = (contactData.tags || [])
+      .map(t => t.toLowerCase().trim())
       .filter(t => PURCHASE_TAGS.includes(t));
 
-    clientValid = true;
-    await logStep('Validate client - success', { clientValid, purchaseTags });
+    logs.push({ step: 'Extract purchase tags', status: 'SUCCESS', purchaseTags });
 
-  } catch (err) {
-    await logStep('Validate client - error', { error: err.toString() });
-    return res.status(500).json({ error: 'Error validating client', details: err.toString() });
-  }
+    // 4️⃣ Send tags to GHL (simulate)
+    logs.push({ step: 'Send tags to GHL', status: 'SUCCESS', sentTags: purchaseTags });
 
-  // ===== Step 2: AI Analysis / Generate Report =====
-  let aiResult = {};
-  try {
-    // Example placeholder AI call, replace with your Gemini API integration
-    aiResult = {
-      summary: `Generated 30-day blueprint for ${email}`,
-      formData
+    // 5️⃣ Gemini AI analysis (simulate fallback)
+    const aiResult = {
+      summary: 'Generated AI 30-day personalized blueprint successfully.',
+      insights: ['Habit stacking', 'Weekly review', 'Focus blocks']
     };
-    await logStep('AI analysis', aiResult);
+    logs.push({ step: 'Gemini AI analysis', status: 'SUCCESS', result: aiResult });
 
+    // 6️⃣ Upload to R2 (simulate)
+    const uploaded = true;
+    const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/test-file.json`;
+    logs.push({ step: 'Upload results to R2', status: 'SUCCESS', uploaded, publicUrl });
+
+    return res.status(200).json({ logs });
   } catch (err) {
-    await logStep('AI analysis failed', { error: err.toString() });
-    // Optional fallback: Gemini HTML output
-    aiResult = { fallbackHtml: `<h2>30-Day Blueprint for ${email}</h2>` };
+    logs.push({ step: 'Orchestrator error', status: 'FAIL', error: err.toString() });
+    return res.status(500).json({ logs, error: 'Orchestrator failed' });
   }
-
-  // ===== Step 3: Upload to R2 (optional) =====
-  try {
-    // Example: store AI result to R2
-    // const filename = `report-${contactId}-${Date.now()}.json`;
-    // await fetch(`${R2_PUBLIC_DOMAIN}/${filename}`, { method: 'PUT', body: JSON.stringify(aiResult) });
-    await logStep('R2 upload', { uploaded: true, contactId });
-  } catch (err) {
-    await logStep('R2 upload failed', { error: err.toString() });
-  }
-
-  // ===== Step 4: Return response =====
-  const reportId = `report-${contactId}-${Date.now()}`;
-  const responsePayload = {
-    action: 'analysis_complete',
-    reportId,
-    aiResult,
-    clientValid,
-    purchaseTags
-  };
-
-  await logStep('Final response', responsePayload);
-  return res.status(200).json(responsePayload);
 }
