@@ -53,6 +53,8 @@ const validateClient = async () => {
 
     if (result.valid) {
       setValidClient(true);
+      setPurchaseTags(result.purchaseTags || []);
+
     } else {
       setValidClient(false);
       setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
