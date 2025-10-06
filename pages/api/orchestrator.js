@@ -8,27 +8,18 @@ export default async function handler(req, res) {
   const logs = [];
   const { contactId, email, formData } = req.body || {};
 
-  // Step 0: Validate input
   if (!contactId || !email) {
-    logs.push({
-      step: 'Input validation',
-      status: 'FAIL',
-      detail: 'Missing contactId or email'
-    });
+    logs.push({ step: 'Input validation', status: 'FAIL', detail: 'Missing contactId or email' });
     return res.status(400).json({ logs });
   }
 
-  logs.push({
-    step: 'Sending contactId/email to GHL',
-    status: 'PENDING',
-    detail: { contactId, email }
-  });
+  logs.push({ step: 'Sending contactId/email to GHL', status: 'PENDING', detail: { contactId, email } });
 
   try {
     const GHL_API_KEY = process.env.GHL_API_KEY;
     const API_VERSION = '2021-07-28';
 
-    // Step 1️⃣: Fetch contact from GHL
+    // 1️⃣ Fetch contact
     const contactRes = await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
       method: 'GET',
       headers: {
@@ -38,27 +29,32 @@ export default async function handler(req, res) {
       }
     });
 
-    const contactData = await contactRes.json();
-    logs.push({
-      step: 'Validate contact',
-      status: contactRes.ok ? 'SUCCESS' : 'FAIL',
-      contact: contactData
-    });
+    const contactDataFull = await contactRes.json();
+
+    // Trim contact data to only what we need
+    const contactData = {
+      contactId: contactDataFull.id,
+      email: contactDataFull.email || contactDataFull.emailLowerCase,
+      firstName: contactDataFull.firstName,
+      lastName: contactDataFull.lastName,
+      tags: contactDataFull.tags || []
+    };
+
+    logs.push({ step: 'Validate contact', status: contactRes.ok ? 'SUCCESS' : 'FAIL', contact: contactData });
 
     if (!contactRes.ok) {
       return res.status(404).json({ logs, error: 'Contact fetch failed' });
     }
 
-const normalizeEmail = (str) => 
-  str.normalize('NFKC')            // Unicode normalization
-     .replace(/\s+/g, '')          // Remove all spaces
-     .toLowerCase();               // Lowercase
+    // 2️⃣ Email match (robust normalization)
+    const normalizeEmail = (str) =>
+      str.normalize('NFKC')
+         .replace(/\s+/g, '')
+         .toLowerCase();
 
-const actualEmail = normalizeEmail(contactData.emailLowerCase || contactData.email || '');
-const expectedEmail = normalizeEmail(email);
-
-const emailMatches = actualEmail === expectedEmail;
-
+    const actualEmail = normalizeEmail(contactData.email);
+    const expectedEmail = normalizeEmail(email);
+    const emailMatches = actualEmail === expectedEmail;
 
     logs.push({
       step: 'Email match',
@@ -71,7 +67,7 @@ const emailMatches = actualEmail === expectedEmail;
       return res.status(403).json({ logs, error: 'Email does not match contact' });
     }
 
-    // Step 3️⃣: Extract purchase tags
+    // 3️⃣ Extract purchase tags
     const PURCHASE_TAGS = [
       'Bought_Main_Tracker',
       'Bought_Template_Vault',
@@ -82,44 +78,26 @@ const emailMatches = actualEmail === expectedEmail;
     ].map(t => t.toLowerCase());
 
     const purchaseTags = (contactData.tags || [])
-      .map(t => t.normalize('NFKC').replace(/\u00A0/g, '').trim().toLowerCase())
+      .map(t => t.toLowerCase().trim())
       .filter(t => PURCHASE_TAGS.includes(t));
 
-    logs.push({
-      step: 'Extract purchase tags',
-      status: 'SUCCESS',
-      purchaseTags
-    });
+    logs.push({ step: 'Extract purchase tags', status: 'SUCCESS', purchaseTags });
 
-    // Step 4️⃣: Send tags to GHL (simulation)
-    logs.push({
-      step: 'Send tags to GHL',
-      status: 'SUCCESS',
-      sentTags: purchaseTags
-    });
+    // 4️⃣ Send tags to GHL (simulate)
+    logs.push({ step: 'Send tags to GHL', status: 'SUCCESS', sentTags: purchaseTags });
 
-    // Step 5️⃣: Gemini AI analysis (simulation / fallback)
+    // 5️⃣ Gemini AI analysis (simulate fallback)
     const aiResult = {
       summary: 'Generated AI 30-day personalized blueprint successfully.',
       insights: ['Habit stacking', 'Weekly review', 'Focus blocks']
     };
-    logs.push({
-      step: 'Gemini AI analysis',
-      status: 'SUCCESS',
-      result: aiResult
-    });
+    logs.push({ step: 'Gemini AI analysis', status: 'SUCCESS', result: aiResult });
 
-    // Step 6️⃣: Upload results to R2 (simulation)
+    // 6️⃣ Upload to R2 (simulate)
     const uploaded = true;
     const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/test-file.json`;
-    logs.push({
-      step: 'Upload results to R2',
-      status: 'SUCCESS',
-      uploaded,
-      publicUrl
-    });
+    logs.push({ step: 'Upload results to R2', status: 'SUCCESS', uploaded, publicUrl });
 
-    // Final response
     return res.status(200).json({ logs });
   } catch (err) {
     logs.push({ step: 'Orchestrator error', status: 'FAIL', error: err.toString() });
