@@ -13,7 +13,9 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "@aws-sdk/client-s3": "^3.484.0",
-    "@aws-sdk/s3-request-presigner": "^3.484.0"
+    "@aws-sdk/s3-request-presigner": "^3.484.0",
+    "framer-motion": "^10.12.16",    // added to improve UX/UI of our form
+    "zod": "^3.23.1"                // added to improve UX/UI of our form
   },
   "engines": {
     "node": ">=18.0.0"
