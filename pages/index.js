@@ -26,6 +26,8 @@ export default function Home() {
   
 const [validClient, setValidClient] = useState(null); // null = checking, true = valid, false = invalid
 const [validationError, setValidationError] = useState('');
+const [firstName, setFirstName] = useState(''); // For personalization
+
 
 useEffect(() => {
   const validateClient = async () => {
@@ -50,6 +52,8 @@ useEffect(() => {
         if (now - data.timestamp < expiry) {
           setValidClient(data.valid);
           setValidationError(data.error || '');
+          setFirstName(data.firstName || '');
+
           return; // Use cached result
         } else {
           // Cache expired, remove it
@@ -75,7 +79,8 @@ useEffect(() => {
       
       if (result.valid) {
         setValidClient(true);
-        localStorage.setItem(cacheKey, JSON.stringify({ valid: true, timestamp: Date.now() }));
+        setFirstName(result.firstName || '');
+        localStorage.setItem(cacheKey, JSON.stringify({ valid: true, firstName: result.firstName || '', timestamp: Date.now() }));
       } else {
         setValidClient(false);
         setValidationError(result.error || 'Invalid client. Please use the correct link from your email or purchase page.');
