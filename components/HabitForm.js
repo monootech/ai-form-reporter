@@ -198,49 +198,51 @@ export default function HabitForm({ contactId, email, firstName }) {
           />
         );
 
-      case "approach":
-        return (
-          <div className="space-y-3">
-            {step.options.map((opt, idx) => {
-              const optionValue = String(idx + 1); // "1","2","3","4"
-              return (
-                <div key={opt} className="p-2">
-                  <label className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
-                    <input
-                      type="radio"
-                      name="approachOption"
-                      value={optionValue}
-                      checked={formData.approachOption === optionValue}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          approachOption: e.target.value,
-                          // clear other-text if choosing non-Other
-                          approachOtherText: e.target.value !== "4" ? "" : formData.approachOtherText
-                        })
-                      }
-                      className="mt-1"
-                      required
-                    />
-                    <div className="flex-1 text-left">
-                      <div className="text-sm">{opt}</div>
-                      {optionValue === "4" && formData.approachOption === "4" && (
-                        <textarea
-                          value={formData.approachOtherText}
-                          onChange={(e) => setFormData({ ...formData, approachOtherText: e.target.value })}
-                          rows={3}
-                          className="mt-2 w-full p-2 border border-gray-200 rounded"
-                          placeholder="Describe your approach..."
-                          required
-                        />
-                      )}
-                    </div>
-                  </label>
-                </div>
-              );
-            })}
-          </div>
-        );
+
+
+
+ // approach question: render radio options with full text values (no numeric indexes)
+case "approach":
+  return (
+    <div className="space-y-3">
+      {step.options.map((opt) => (
+        <div key={opt} className="p-2">
+          <label className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+            <input
+              type="radio"
+              name="approachOption"
+              value={opt} // <-- store full text
+              checked={formData.approachOption === opt}
+              onChange={(e) => setFormData({
+                ...formData,
+                approachOption: e.target.value,
+                approachOtherText: e.target.value !== step.options[3] ? "" : formData.approachOtherText
+              })}
+              className="mt-1"
+              required
+            />
+            <div className="flex-1 text-left">
+              <div className="text-sm">{opt}</div>
+              {opt === step.options[3] && formData.approachOption === step.options[3] && (
+                <textarea
+                  value={formData.approachOtherText}
+                  onChange={(e) => setFormData({ ...formData, approachOtherText: e.target.value })}
+                  rows={3}
+                  className="mt-2 w-full p-2 border border-gray-200 rounded"
+                  placeholder="Describe your approach..."
+                  required
+                />
+              )}
+            </div>
+          </label>
+        </div>
+      ))}
+    </div>
+  );
+
+
+
+
 
       default:
         return null;
