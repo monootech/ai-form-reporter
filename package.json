@@ -14,7 +14,9 @@
     "react-dom": "18.2.0",
     "@aws-sdk/client-s3": "^3.484.0",
     "@aws-sdk/s3-request-presigner": "^3.484.0",
-    "framer-motion": "^10.12.16",   
+    "framer-motion": "latest",
+    "tailwindcss": "latest",
+    "@tailwindcss/forms": "latest",
     "zod": "^3.23.1"                
   },
   "engines": {
