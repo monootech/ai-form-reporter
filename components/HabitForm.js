@@ -271,17 +271,8 @@ export default function HabitForm({ contactId, email, firstName }) {
       const res = await fetch(WORKFLOW2_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // body: JSON.stringify(payload)  // let's remove this for now
-     
-        // added the following START
-        body: JSON.stringify({
-              contactId,
-              email,
-              firstName,
-              formData
-                            })
-        // added the above END
-        
+        body: JSON.stringify(payload)
+             
       });
 
       // Try to parse JSON
