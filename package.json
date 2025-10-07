@@ -15,6 +15,7 @@
     "@aws-sdk/client-s3": "^3.484.0",
     "@aws-sdk/s3-request-presigner": "^3.484.0",
     "framer-motion": "latest",
+    "react-confetti": "^7.0.0",
     "tailwindcss": "latest",
     "@tailwindcss/forms": "latest",
     "zod": "^3.23.1"                
