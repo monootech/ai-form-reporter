@@ -10,7 +10,8 @@ import { useRouter } from "next/router";
 export default function HabitForm({ contactId, email, firstName }) {
   const router = useRouter();
 
-  const WORKFLOW2_URL = process.env.NEXT_PUBLIC_WORKFLOW2_URL || "/api/submit-form";
+  const WORKFLOW2_URL = "/api/submit-form";
+
 
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
