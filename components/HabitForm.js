@@ -278,7 +278,7 @@ export default function HabitForm({ contactId, email, firstName }) {
           initial={{ opacity: 0, x: 30 }}    // slide in from right & fade
           animate={{ opacity: 1, x: 0 }}      // slide to center & fully visible
           exit={{ opacity: 0, x: -30 }}                  // slide out to left & fade
-          transition={{ duration: 0.30, "easeInOut" }}    // smooth easing
+          transition={{ duration: 0.30, ease: "easeInOut" }}    // smooth easing
         >
           <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
           <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
