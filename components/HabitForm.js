@@ -289,7 +289,7 @@ export default function HabitForm({ contactId, email, firstName }) {
 
 
 
-    {/* Step container with dynamic height and smooth animation */}
+    
 <div className="mb-6 w-full">
   <AnimatePresence mode="wait">
     <motion.div
