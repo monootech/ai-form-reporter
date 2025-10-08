@@ -219,46 +219,69 @@ export default function HabitForm({ contactId, email, firstName }) {
     }
   };
 
-  // HANDLE FORM SUBMIT
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    if (currentStep < steps.length - 1) {
 
-      setPrevStep(currentStep); // <-- store current before changing
 
-      setCurrentStep((s) => s + 1);
-      return;
-    }
+// HANDLE FORM SUBMIT (Improved and Resilient)
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    setLoading(true);
-    setSubmitError("");
+  if (currentStep < steps.length - 1) {
+    setPrevStep(currentStep);
+    setCurrentStep((s) => s + 1);
+    return;
+  }
 
+  setLoading(true);
+  setSubmitError("");
+
+  try {
+    const payload = { contactId, email, firstName, formData };
+    console.log("Submitting payload to Workflow 2:", payload);
+
+    const res = await fetch(WORKFLOW2_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    // Capture and log raw response before parsing
+    const rawText = await res.text();
+    console.log("Raw workflow2 response:", rawText);
+
+    let json;
     try {
-      const payload = { contactId, email, firstName, formData };
-
-      const res = await fetch(WORKFLOW2_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        const errMsg = json.error || json.message || "Server error during analysis. Please try again.";
-        setSubmitError(errMsg);
-        setLoading(false);
-        return;
-      }
-
-      setSuccess(true);
-    } catch (err) {
-      console.error("Submit error:", err);
-      setSubmitError("Submission failed. Please try again.");
-      setLoading(false);
+      json = rawText ? JSON.parse(rawText) : null;
+    } catch (parseErr) {
+      console.error("Failed to parse workflow2 response as JSON:", parseErr);
+      throw new Error("Invalid JSON returned from workflow");
     }
-  };
+
+    if (!res.ok) {
+      console.error("Workflow2 returned HTTP error:", res.status, json);
+      throw new Error(json?.error || json?.message || `HTTP ${res.status}`);
+    }
+
+    if (!json?.success) {
+      throw new Error(json?.error || "Workflow failed without success flag");
+    }
+
+    console.log("Workflow2 successful response:", json);
+    setSuccess(true);
+  } catch (err) {
+    console.error("Submit error:", err);
+    setSubmitError(err.message || "Submission failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+
+
+
+
 
   const handleBack = () => { if(currentStep > 0) 
      
