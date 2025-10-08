@@ -9,14 +9,19 @@ export default function HabitForm({ contactId, email, firstName }) {
 
 
 
+  // --- Submission state for report ---
+const [submitSuccess, setSubmitSuccess] = useState(false);   // true if form submitted successfully
+const [reportUrl, setReportUrl] = useState("");              // store URL of generated report
+const [submitError, setSubmitError] = useState("");          // error messages for submission
+const [isSubmitting, setIsSubmitting] = useState(false);     // track if submission is in progress
+
   
+  // --- Form navigation ---
+
   const [currentStep, setCurrentStep] = useState(0);
-  
   const [prevStep, setPrevStep] = useState(0); // <-- new
   
-  const [loading, setLoading] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [success, setSuccess] = useState(false);
+  
 
   const [formData, setFormData] = useState({
     primaryGoal: "",
@@ -226,14 +231,17 @@ export default function HabitForm({ contactId, email, firstName }) {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
+  // --- Step navigation ---
   if (currentStep < steps.length - 1) {
     setPrevStep(currentStep);
     setCurrentStep((s) => s + 1);
     return;
   }
 
-  setLoading(true);
+  // --- Last step → submit form ---
+  setIsSubmitting(true);
   setSubmitError("");
+  setSubmitSuccess(false);
 
   try {
     const payload = { contactId, email, firstName, formData };
@@ -245,34 +253,38 @@ const handleSubmit = async (e) => {
       body: JSON.stringify(payload)
     });
 
-    // Capture and log raw response before parsing
     const rawText = await res.text();
-    console.log("Raw workflow2 response:", rawText);
+    console.log("Raw Workflow2 response:", rawText);
 
     let json;
     try {
       json = rawText ? JSON.parse(rawText) : null;
     } catch (parseErr) {
-      console.error("Failed to parse workflow2 response as JSON:", parseErr);
-      throw new Error("Invalid JSON returned from workflow");
+      console.error("Failed to parse Workflow2 response:", parseErr);
+      throw new Error("Invalid JSON returned from Workflow 2");
     }
 
     if (!res.ok) {
-      console.error("Workflow2 returned HTTP error:", res.status, json);
-      throw new Error(json?.error || json?.message || `HTTP ${res.status}`);
+      console.error("Workflow2 HTTP error:", res.status, json);
+      throw new Error(json?.error || `HTTP ${res.status}`);
     }
 
-    if (!json?.success) {
-      throw new Error(json?.error || "Workflow failed without success flag");
+    if (!json?.success || !json?.data?.reportUrl) {
+      throw new Error("Submission succeeded but report URL is missing");
     }
 
-    console.log("Workflow2 successful response:", json);
-    setSuccess(true);
+    // ✅ Successful submission → save report URL
+    setReportUrl(json.data.reportUrl);
+    setSubmitSuccess(true);
+    setSubmitError("");
+
   } catch (err) {
-    console.error("Submit error:", err);
+    console.error("Form submission error:", err);
     setSubmitError(err.message || "Submission failed. Please try again.");
+    setSubmitSuccess(false);
+
   } finally {
-    setLoading(false);
+    setIsSubmitting(false);
   }
 };
 
@@ -283,24 +295,62 @@ const handleSubmit = async (e) => {
 
 
 
-  const handleBack = () => { if(currentStep > 0) 
-     
-    setPrevStep(currentStep); // <-- store current before changing
 
-    setCurrentStep((s) => s - 1); };
-
-  if(success) {
-    return (
-      <div className="text-center py-20">
-        <Confetti />
-        <h2 className="text-3xl font-bold text-green-600 mb-4">Your Personalized AI Habit Blueprint™ is Ready!</h2>
-        <p className="text-gray-700 mb-6">Click the button below to view your full blueprint report.</p>
-        <a href={`/report/${contactId}`} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">View My Blueprint</a>
-      </div>
-    );
+const handleBack = () => {
+  if (currentStep > 0) {
+    setPrevStep(currentStep);
+    setCurrentStep((s) => s - 1);
   }
+};
 
+
+
+
+
+{submitSuccess && (
+  <div className="text-center py-20">
+    <Confetti />
+    <h2 className="text-3xl font-bold text-green-600 mb-4">Your Personalized AI Habit Blueprint™ is Ready!</h2>
+    <p className="text-gray-700 mb-6">
+      Click the button below to view your full blueprint report.
+    </p>
+    <a
+      href={reportUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+    >
+      View My Blueprint
+    </a>
+  </div>
+)}
+
+
+
+
+if (submitSuccess) {
   return (
+    <div className="text-center py-20">
+      <Confetti />
+      <h2 className="text-3xl font-bold text-green-600 mb-4">
+        Your Personalized AI Habit Blueprint™ is Ready!
+      </h2>
+      <p className="text-gray-700 mb-6">
+        Click the button below to view your full blueprint report.
+      </p>
+      <a
+        href={reportUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+      >
+        View My Blueprint
+      </a>
+    </div>
+  );
+}
+
+    
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-6">
       <div className="mb-6 text-sm text-gray-600">
         <strong>Contact:</strong> {firstName || "Guest"} • <strong>Email:</strong> {email}
@@ -341,26 +391,22 @@ const handleSubmit = async (e) => {
 
 
 
+  {/* ✅ Optional error message */}
+  {submitError && (
+    <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">
+      {submitError}
+    </div>
+  )}
 
 
+  {/* ✅ Buttons section */}
+<div className="flex justify-between mt-4">
 
-
-      {submitError && (
-        <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{submitError}</div>
-      )}
-
-
-
-
-
-
-
-<div className="flex justify-between">
   {/* Back Button */}
   <motion.button
     type="button"
     onClick={handleBack}
-    disabled={currentStep === 0 || loading}
+    disabled={currentStep === 0 || isSubmitting}
     className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50"
     whileHover={{ x: -4, scale: 1.02 }}
     whileTap={{ scale: 0.95 }}
@@ -372,15 +418,17 @@ const handleSubmit = async (e) => {
   {/* Continue / Submit Button */}
   <motion.button
     type="submit"
-    disabled={loading}
+    disabled={isSubmitting}
     className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
     whileHover={{ x: 4, scale: 1.03 }}
     whileTap={{ scale: 0.95 }}
     transition={{ duration: 0.2 }}
   >
-    {loading ? "Processing..." : currentStep === steps.length - 1 ? "Generate My Blueprint" : "Continue"}
+    {isSubmitting ? "Processing..." : currentStep === steps.length - 1 ? "Generate My Blueprint" : "Continue"}
   </motion.button>
+
 </div>
+
 
 
 
