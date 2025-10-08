@@ -7,7 +7,13 @@ export default function HabitForm({ contactId, email, firstName }) {
   const router = useRouter();
   const WORKFLOW2_URL = "/api/submit-form";
 
+
+
+  
   const [currentStep, setCurrentStep] = useState(0);
+  
+  const [prevStep, setPrevStep] = useState(0); // <-- new
+  
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -218,6 +224,9 @@ export default function HabitForm({ contactId, email, firstName }) {
     e.preventDefault();
 
     if (currentStep < steps.length - 1) {
+
+      setPrevStep(currentStep); // <-- store current before changing
+
       setCurrentStep((s) => s + 1);
       return;
     }
@@ -251,7 +260,11 @@ export default function HabitForm({ contactId, email, firstName }) {
     }
   };
 
-  const handleBack = () => { if(currentStep > 0) setCurrentStep((s) => s - 1); };
+  const handleBack = () => { if(currentStep > 0) 
+     
+    setPrevStep(currentStep); // <-- store current before changing
+
+    setCurrentStep((s) => s - 1); };
 
   if(success) {
     return (
@@ -270,37 +283,30 @@ export default function HabitForm({ contactId, email, firstName }) {
         <strong>Contact:</strong> {firstName || "Guest"} • <strong>Email:</strong> {email}
       </div>
 
+
+
     
 
 
-
-
-<div className="flex justify-between">
-  {/* Back Button */}
-  <motion.button
-    type="button"
-    onClick={handleBack}
-    disabled={currentStep === 0 || loading}
-    className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50"
-    whileHover={{ x: -4, scale: 1.02 }}   // moves slightly left
-    whileTap={{ scale: 0.95 }}            // subtle press effect
-    transition={{ duration: 0.2 }}
-  >
-    Back
-  </motion.button>
-
-  {/* Continue / Submit Button */}
-  <motion.button
-    type="submit"
-    disabled={loading}
-    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-    whileHover={{ x: 4, scale: 1.03 }}    // moves slightly right
-    whileTap={{ scale: 0.95 }}            // subtle press effect
-    transition={{ duration: 0.2 }}
-  >
-    {loading ? "Processing..." : currentStep === steps.length - 1 ? "Generate My Blueprint" : "Continue"}
-  </motion.button>
+<div className="mb-6 min-h-[240px] relative overflow-hidden">
+  <AnimatePresence mode="wait">
+    <motion.div
+      key={currentStep}
+      initial={{ opacity: 0, x: currentStep > prevStep ? 50 : -50, scale: 0.98 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: currentStep > prevStep ? -50 : 50, scale: 0.98 }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      className="absolute inset-0 w-full"
+    >
+      <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
+      <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
+      <div className="mb-6">{renderField(steps[currentStep])}</div>
+    </motion.div>
+  </AnimatePresence>
 </div>
+
+
+
 
 
 
@@ -312,13 +318,48 @@ export default function HabitForm({ contactId, email, firstName }) {
         <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{submitError}</div>
       )}
 
-      <div className="flex justify-between">
-        <button type="button" onClick={handleBack} disabled={currentStep===0 || loading} className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50">Back</button>
-        <button type="submit" disabled={loading} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
-          {loading ? "Processing..." : currentStep===steps.length-1 ? "Generate My Blueprint" : "Continue"}
-        </button>
-      </div>
 
+
+
+
+
+
+<div className="flex justify-between">
+  {/* Back Button */}
+  <motion.button
+    type="button"
+    onClick={handleBack}
+    disabled={currentStep === 0 || loading}
+    className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50"
+    whileHover={{ x: -4, scale: 1.02 }}
+    whileTap={{ scale: 0.95 }}
+    transition={{ duration: 0.2 }}
+  >
+    Back
+  </motion.button>
+
+  {/* Continue / Submit Button */}
+  <motion.button
+    type="submit"
+    disabled={loading}
+    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+    whileHover={{ x: 4, scale: 1.03 }}
+    whileTap={{ scale: 0.95 }}
+    transition={{ duration: 0.2 }}
+  >
+    {loading ? "Processing..." : currentStep === steps.length - 1 ? "Generate My Blueprint" : "Continue"}
+  </motion.button>
+</div>
+
+
+
+
+    
+
+
+
+
+          
       <div className="mt-4 text-sm text-gray-600">Step {currentStep+1} of {steps.length}</div>
     </form>
   );
