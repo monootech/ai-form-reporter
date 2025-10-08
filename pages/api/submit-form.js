@@ -8,18 +8,12 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    return res.status(405).json({
-      success: false,
-      error: "Method not allowed",
-    });
+    return res.status(405).json({ success: false, error: "Method not allowed" });
   }
 
   const { contactId, email, firstName, formData } = req.body || {};
   if (!contactId || !email || !formData) {
-    return res.status(400).json({
-      success: false,
-      error: "Missing contactId, email, or formData",
-    });
+    return res.status(400).json({ success: false, error: "Missing contactId, email, or formData" });
   }
 
   const workflow2Url = process.env.WORKFLOW2_URL || process.env.NEXT_PUBLIC_WORKFLOW2_URL;
@@ -27,13 +21,9 @@ export default async function handler(req, res) {
 
   if (!workflow2Url) {
     console.error("Submit-form: WORKFLOW2_URL not configured");
-    return res.status(500).json({
-      success: false,
-      error: "Server misconfiguration: Workflow 2 URL missing",
-    });
+    return res.status(500).json({ success: false, error: "Server misconfiguration: Workflow 2 URL missing" });
   }
 
-  // Timeout setup: abort if Pipedream doesn't reply in 10s
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 29_000); // 29 seconds
 
@@ -50,43 +40,33 @@ export default async function handler(req, res) {
 
     clearTimeout(timeout);
 
-    const rawText = await fetchRes.text();
-    const truncated = rawText && rawText.length > 2000 ? rawText.slice(0, 2000) + "...(truncated)" : rawText;
-
-    console.log("Submit-form: Workflow2 HTTP status:", fetchRes.status);
-    console.log("Submit-form: Workflow2 response (truncated):", truncated);
-
     let parsed = null;
     try {
-      parsed = rawText ? JSON.parse(rawText) : null;
+      parsed = await fetchRes.json(); // ✅ Directly parse JSON, avoids BOM issues
     } catch (err) {
-      console.warn("Submit-form: Invalid JSON response from Workflow2:", err.message);
-    }
-
-    // --- Standardized Response Envelope ---
-    if (parsed && typeof parsed === "object") {
-      return res.status(200).json({
-        success: true,
-        data: parsed,
-      });
-    } else {
+      const text = await fetchRes.text();
+      console.warn("Submit-form: Failed to parse JSON from Workflow 2:", err.message);
+      console.warn("Submit-form: Raw response:", text.slice(0, 2000));
       return res.status(502).json({
         success: false,
-        error: "Workflow 2 returned non-JSON or empty response",
+        error: "Workflow 2 returned invalid JSON or empty response",
         status: fetchRes.status,
-        rawResponse: truncated,
+        rawResponse: text.slice(0, 2000),
       });
     }
+
+    // ✅ Standardized Response Envelope
+    return res.status(200).json({ success: true, data: parsed });
+
   } catch (err) {
     clearTimeout(timeout);
-
     const isAbort = err.name === "AbortError";
     console.error("Submit-form: Error contacting Workflow2:", err);
 
     return res.status(500).json({
       success: false,
       error: isAbort
-        ? "Request to Workflow 2 timed out (10s). Please try again."
+        ? "Request to Workflow 2 timed out (29s). Please try again."
         : "Failed to submit form to Workflow 2.",
       details: err.message,
     });
