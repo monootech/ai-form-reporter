@@ -271,21 +271,32 @@ export default function HabitForm({ contactId, email, firstName }) {
       </div>
 
     
-<div className="mb-6 min-h-[220px]">  
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, x: 30 }}    // slide in from right & fade
-          animate={{ opacity: 1, x: 0 }}      // slide to center & fully visible
-          exit={{ opacity: 0, x: -30 }}                  // slide out to left & fade
-          transition={{ duration: 0.30, ease: "easeInOut" }}    // smooth easing
-        >
-          <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
-          <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
-          <div className="mb-6">{renderField(steps[currentStep])}</div>
-        </motion.div>
-      </AnimatePresence>
+
+{/* Step container with fixed min-height to prevent layout jumps */}
+<div className="mb-6 min-h-[240px] relative overflow-hidden">
+  <AnimatePresence mode="wait">
+    <motion.div
+      key={currentStep}
+      initial={{ opacity: 0, x: currentStep > prevStep ? 50 : -50, scale: 0.98 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: currentStep > prevStep ? -50 : 50, scale: 0.98 }}
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }} // cubic-bezier for natural feeling
+      className="absolute inset-0 w-full"
+    >
+      {/* Step title */}
+      <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
+      {/* Step question */}
+      <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
+      {/* Step input */}
+      <div className="mb-6">{renderField(steps[currentStep])}</div>
+    </motion.div>
+  </AnimatePresence>
 </div>
+
+
+
+
+
 
       {submitError && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{submitError}</div>
