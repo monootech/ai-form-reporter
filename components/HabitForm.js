@@ -271,7 +271,7 @@ export default function HabitForm({ contactId, email, firstName }) {
       </div>
 
     
-<div className="mb-6 min-h-[220px]">  // Step container with fixed min-height to prevent layout jumps 
+<div className="mb-6 min-h-[220px]">  
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
