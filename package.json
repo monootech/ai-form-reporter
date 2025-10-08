@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start", 
+    "start": "next start",
     "lint": "next lint",
     "vercel-build": "next build"
   },
@@ -14,11 +14,14 @@
     "react-dom": "18.2.0",
     "@aws-sdk/client-s3": "^3.484.0",
     "@aws-sdk/s3-request-presigner": "^3.484.0",
-    "framer-motion": "latest",
-    "react-confetti": "latest",
-    "tailwindcss": "latest",
-    "@tailwindcss/forms": "latest",
-    "zod": "^3.23.1"                
+    "framer-motion": "^10.12.16",
+    "react-confetti": "^7.5.0",
+    "zod": "^3.23.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.3",
+    "@tailwindcss/forms": "^1.0.5",
+    "autoprefixer": "^10.4.21"
   },
   "engines": {
     "node": ">=18.0.0"
