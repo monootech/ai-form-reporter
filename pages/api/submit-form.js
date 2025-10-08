@@ -40,10 +40,29 @@ export default async function handler(req, res) {
 
     clearTimeout(timeout);
 
-    let parsed = null;
-    try {
-      parsed = await fetchRes.json(); // ✅ Directly parse JSON, avoids BOM issues
-    } catch (err) {
+    
+
+
+  let parsed = null;
+  try {
+    const text = await fetchRes.text();
+    if (text.trim()) {
+      parsed = JSON.parse(text);
+    } else {
+      parsed = { message: "Workflow 2 completed but returned empty response" };
+    }
+  } catch (err) {
+    console.warn("Submit-form: Failed to parse Workflow 2 JSON, returning fallback", err);
+    parsed = { message: "Workflow 2 completed but returned unparseable JSON" };
+  }
+
+
+
+
+
+      
+
+      
       const text = await fetchRes.text();
       console.warn("Submit-form: Failed to parse JSON from Workflow 2:", err.message);
       console.warn("Submit-form: Raw response:", text.slice(0, 2000));
