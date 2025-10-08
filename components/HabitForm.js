@@ -272,26 +272,36 @@ export default function HabitForm({ contactId, email, firstName }) {
 
     
 
-{/* Step container with fixed min-height to prevent layout jumps */}
-<div className="mb-6 min-h-[240px] relative overflow-hidden">
-  <AnimatePresence mode="wait">
-    <motion.div
-      key={currentStep}
-      initial={{ opacity: 0, x: currentStep > prevStep ? 50 : -50, scale: 0.98 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: currentStep > prevStep ? -50 : 50, scale: 0.98 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }} // cubic-bezier for natural feeling
-      className="absolute inset-0 w-full"
-    >
-      {/* Step title */}
-      <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
-      {/* Step question */}
-      <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
-      {/* Step input */}
-      <div className="mb-6">{renderField(steps[currentStep])}</div>
-    </motion.div>
-  </AnimatePresence>
+
+
+
+<div className="flex justify-between">
+  {/* Back Button */}
+  <motion.button
+    type="button"
+    onClick={handleBack}
+    disabled={currentStep === 0 || loading}
+    className="px-6 py-3 border border-gray-300 rounded-lg disabled:opacity-50"
+    whileHover={{ x: -4, scale: 1.02 }}   // moves slightly left
+    whileTap={{ scale: 0.95 }}            // subtle press effect
+    transition={{ duration: 0.2 }}
+  >
+    Back
+  </motion.button>
+
+  {/* Continue / Submit Button */}
+  <motion.button
+    type="submit"
+    disabled={loading}
+    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+    whileHover={{ x: 4, scale: 1.03 }}    // moves slightly right
+    whileTap={{ scale: 0.95 }}            // subtle press effect
+    transition={{ duration: 0.2 }}
+  >
+    {loading ? "Processing..." : currentStep === steps.length - 1 ? "Generate My Blueprint" : "Continue"}
+  </motion.button>
 </div>
+
 
 
 
