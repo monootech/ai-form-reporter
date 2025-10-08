@@ -91,7 +91,7 @@ export default function HabitForm({ contactId, email, firstName }) {
       question: "How would you describe your Google Sheets comfort level?",
       type: "radio",
       field: "sheetsSkillLevel",
-      options: ["Beginner 🟢","Intermediate 🟡","Advanced 🔵","Expert 🔵"]
+      options: ["Beginner 🟢 — I can enter data but formulas confuse me","Intermediate 🟡 — I use basic formulas but advanced stuff feels overwhelming","Advanced 🔵 — I work with pivot tables, conditional formatting, and some advanced formulas such as LookUps, Query, etc... ","Expert 🟣 — I build complex dashboards and automations regularly"]
     },
     {
       title: "How you approach achieving goals",
