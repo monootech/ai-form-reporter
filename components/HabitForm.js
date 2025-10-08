@@ -288,22 +288,30 @@ export default function HabitForm({ contactId, email, firstName }) {
     
 
 
-<div className="mb-6 min-h-[240px] relative overflow-hidden">
+
+    {/* Step container with dynamic height and smooth animation */}
+<div className="mb-6 w-full">
   <AnimatePresence mode="wait">
     <motion.div
       key={currentStep}
-      initial={{ opacity: 0, x: currentStep > prevStep ? 50 : -50, scale: 0.98 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: currentStep > prevStep ? -50 : 50, scale: 0.98 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="absolute inset-0 w-full"
+      initial={{ opacity: 0, y: 20 }}           // slide up from bottom & fade
+      animate={{ opacity: 1, y: 0 }}            // move to center
+      exit={{ opacity: 0, y: -20 }}             // slide up & fade out
+      transition={{ duration: 0.35, ease: "easeInOut" }}
+      className="w-full"
     >
+      {/* Question title */}
       <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
+
+      {/* Question text */}
       <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
+
+      {/* Options / input field */}
       <div className="mb-6">{renderField(steps[currentStep])}</div>
     </motion.div>
   </AnimatePresence>
 </div>
+
 
 
 
