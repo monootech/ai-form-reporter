@@ -270,19 +270,22 @@ export default function HabitForm({ contactId, email, firstName }) {
         <strong>Contact:</strong> {firstName || "Guest"} • <strong>Email:</strong> {email}
       </div>
 
-      <AnimatePresence exitBeforeEnter>
+    
+<div className="mb-6 min-h-[220px]">  /* Step container with fixed min-height to prevent layout jumps */
+      <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.35 }}
+          initial={{ opacity: 0, x: 30 }}    // slide in from right & fade
+          animate={{ opacity: 1, x: 0 }}      // slide to center & fully visible
+          exit={{ opacity: 0, x: -30 }}                  // slide out to left & fade
+          transition={{ duration: 0.30, "easeInOut" }}    // smooth easing
         >
           <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
           <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
           <div className="mb-6">{renderField(steps[currentStep])}</div>
         </motion.div>
       </AnimatePresence>
+</div>
 
       {submitError && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">{submitError}</div>
