@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         status: fetchRes.status,
         rawResponse: text.slice(0, 2000),
       });
-    }
+    
 
     // ✅ Standardized Response Envelope
     return res.status(200).json({ success: true, data: parsed });
