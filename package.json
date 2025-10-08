@@ -15,7 +15,7 @@
     "@aws-sdk/client-s3": "^3.484.0",
     "@aws-sdk/s3-request-presigner": "^3.484.0",
     "framer-motion": "^10.12.16",
-    "react-confetti": "^7.5.0",
+    "react-confetti": "^6.4.0",
     "zod": "^3.23.1"
   },
   "devDependencies": {
