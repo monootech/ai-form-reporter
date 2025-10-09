@@ -343,9 +343,9 @@ export default function HabitForm({ contactId, email, firstName }) {
           Click the button below to view your full blueprint report.
         </p>
         <a
-          href={reportUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={`/report/${contactId}`}
+          // target="_blank"
+          // rel="noopener noreferrer"
           className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
         >
           View My Blueprint
