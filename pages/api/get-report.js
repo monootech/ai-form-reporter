@@ -1,28 +1,48 @@
 // pages/api/get-report.js
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+
+const REGION = "auto";
+const s3Client = new S3Client({
+  region: REGION,
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
+
 export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ success: false, error: 'Missing report ID' });
+    return res.status(400).json({ success: false, error: "Missing report ID" });
   }
 
+  const objectKey = `reports/${id}/report.json`;
+
   try {
-    // Fetch from Cloudflare R2
-    const response = await fetch(
-      `https://${process.env.R2_PUBLIC_DOMAIN}/reports/${id}/report.json`
-    );
-    
-    if (!response.ok) {
-      throw new Error('Report not found');
-    }
-    
-    const reportData = await response.json();
-    res.status(200).json({ success: true, report: reportData });
-  } catch (error) {
-    console.error('Error fetching report:', error);
-    res.status(404).json({ 
-      success: false, 
-      error: 'Report not found or access denied' 
+    const command = new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: objectKey,
     });
+
+    const data = await s3Client.send(command);
+    const body = await streamToString(data.Body);
+
+    const reportData = JSON.parse(body);
+
+    res.status(200).json({ success: true, report: reportData });
+  } catch (err) {
+    console.error("Error fetching report from R2:", err);
+    res.status(404).json({ success: false, error: "Report not found or access denied" });
   }
+}
+
+// helper function to convert ReadableStream to string
+async function streamToString(stream) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString("utf-8");
 }
