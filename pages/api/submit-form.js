@@ -43,35 +43,29 @@ export default async function handler(req, res) {
     
 
 
-  let parsed = null;
-  try {
-    const text = await fetchRes.text();
-    if (text.trim()) {
-      parsed = JSON.parse(text);
-    } else {
-      parsed = { message: "Workflow 2 completed but returned empty response" };
-    }
-  } catch (err) {
-    console.warn("Submit-form: Failed to parse Workflow 2 JSON, returning fallback", err);
-    parsed = { message: "Workflow 2 completed but returned unparseable JSON" };
+let parsed = null;
+let text = "";
+
+try {
+  text = await fetchRes.text(); // read only once
+
+  if (text.trim()) {
+    parsed = JSON.parse(text);
+  } else {
+    parsed = { message: "Workflow 2 completed but returned empty response" };
   }
 
+} catch (err) {
+  console.warn("Submit-form: Failed to parse Workflow 2 JSON, returning fallback", err);
+  parsed = { message: "Workflow 2 completed but returned unparseable JSON", raw: text };
+}
+
+// ✅ Return standardized envelope
+return res.status(200).json({ success: true, data: parsed });
 
 
 
-
-      
-
-      
-      const text = await fetchRes.text();
-      console.warn("Submit-form: Failed to parse JSON from Workflow 2:", err.message);
-      console.warn("Submit-form: Raw response:", text.slice(0, 2000));
-      return res.status(502).json({
-        success: false,
-        error: "Workflow 2 returned invalid JSON or empty response",
-        status: fetchRes.status,
-        rawResponse: text.slice(0, 2000),
-      });
+    
     
 
     // ✅ Standardized Response Envelope
