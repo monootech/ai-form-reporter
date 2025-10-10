@@ -28,9 +28,22 @@ export default async function handler(req, res) {
 
     const data = await s3Client.send(command);
     const body = await streamToString(data.Body);
-
     const reportData = JSON.parse(body);
 
+
+    // 🧹 Remove internal tracking tags before sending to client
+  const {
+    Goal_Tags,
+    Obstacle_Tags,
+    Emotional_Tags,
+    Preference_Tags,
+    Upsell_Ready_Tags,
+    Budget_Tags,
+    Sheets_Level_Tags,
+    ...cleanReport
+  } = reportData;
+
+    
     res.status(200).json({ success: true, report: reportData });
   } catch (err) {
     console.error("Error fetching report from R2:", err);
