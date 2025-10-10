@@ -16,7 +16,10 @@
     "@aws-sdk/s3-request-presigner": "^3.484.0",
     "framer-motion": "^10.12.16",
     "react-confetti": "^6.4.0",
-    "zod": "^3.23.1"
+    "zod": "^3.23.1",
+    "marked": "^15.0.2",
+    "dompurify": "^3.1.7",
+    "jsdom": "^25.0.1"
   },
   "devDependencies": {
     "tailwindcss": "^3.3.3",
