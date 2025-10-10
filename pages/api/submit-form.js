@@ -49,7 +49,7 @@ let text = "";
 try {
 
   text = await fetchRes.text(); // read only once
-
+  console.log("Raw Workflow 2 text response:", text);
 
   if (text.trim()) {
     parsed = JSON.parse(text);
