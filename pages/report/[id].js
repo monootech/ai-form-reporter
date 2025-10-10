@@ -1,16 +1,10 @@
 // pages/report/[id].js - Dynamic Report Page (Updated)
-
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
 
-
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-
-// Initialize DOMPurify for server-safe use
-const purify = DOMPurify(window);
 
 
 export default function ReportPage() {
