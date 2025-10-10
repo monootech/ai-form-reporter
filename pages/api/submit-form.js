@@ -47,10 +47,8 @@ let parsed = null;
 let text = "";
 
 try {
-  console.log("Raw Workflow 2 text response:", text);
 
   text = await fetchRes.text(); // read only once
-  console.log("Raw Workflow 2 text response:", text);
 
 
   if (text.trim()) {
@@ -64,16 +62,13 @@ try {
   parsed = { message: "Workflow 2 completed but returned unparseable JSON", raw: text };
 }
 
-// ✅ Return standardized envelope
+// ✅ Return standardized Response envelope
 return res.status(200).json({ success: true, data: parsed });
 
 
 
-    
-    
 
-    // ✅ Standardized Response Envelope
-    return res.status(200).json({ success: true, data: parsed });
+    
 
   } catch (err) {
     clearTimeout(timeout);
