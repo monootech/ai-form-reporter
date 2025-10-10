@@ -1,4 +1,4 @@
-// pages/report/[id].js - Dynamic Report Page
+// pages/report/[id].js - Dynamic Report Page (Updated)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -17,18 +17,22 @@ export default function ReportPage() {
 
   const fetchReport = async (reportId) => {
     try {
-      // Fetch JSON from Cloudflare R2 via public URL
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/reports/${reportId}/report.json`
-
-      );
+      // ✅ Fetch report via internal API (get-report.js)
+      const response = await fetch(`/api/get-report?id=${reportId}`);
       
       if (!response.ok) {
-        throw new Error('Report not found');
+        throw new Error('Report not found or access denied');
       }
       
-      const reportData = await response.json();
-      setReport(reportData);
+      const reportJson = await response.json();
+      const reportData = reportJson.report;
+
+      // ✅ Optional: Transform JSON into HTML-ready format
+      const htmlContent = reportData.analysis
+        ? reportData.analysis.replace(/\n/g, '<br />') // simple line breaks
+        : '<p>No analysis content</p>';
+
+      setReport({ ...reportData, htmlContent });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,7 +41,6 @@ export default function ReportPage() {
   };
 
   const handleDownloadPDF = () => {
-    // Track PDF download and open PDF
     fetch(`/api/track-click`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,7 +54,6 @@ export default function ReportPage() {
   };
 
   const handleLinkClick = (type) => {
-    // Track upsell link clicks
     fetch(`/api/track-click`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -80,7 +82,6 @@ export default function ReportPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Report Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-green-700 mb-4">
             🎯 Personalized AI Habit Blueprint
@@ -96,7 +97,6 @@ export default function ReportPage() {
           </p>
         </div>
 
-        {/* Report Content */}
         <div className="bg-white shadow-xl rounded-lg p-8 mb-8">
           <div 
             className="prose prose-lg max-w-none"
@@ -104,7 +104,6 @@ export default function ReportPage() {
           />
         </div>
 
-        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
           <button
             onClick={handleDownloadPDF}
@@ -112,7 +111,6 @@ export default function ReportPage() {
           >
             📥 Download PDF Version
           </button>
-          
           {report.recommendations?.templateVault && !report.purchaseTags?.includes('Bought_Template_Vault') && (
             <button
               onClick={() => handleLinkClick('vault')}
@@ -121,7 +119,6 @@ export default function ReportPage() {
               🔑 Get Template Vault
             </button>
           )}
-          
           {report.recommendations?.accountability && !report.purchaseTags?.includes('Bought_Accountability_System') && (
             <button
               onClick={() => handleLinkClick('accountability')}
