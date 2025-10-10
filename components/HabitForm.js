@@ -5,7 +5,7 @@ import Confetti from "react-confetti";
 
 export default function HabitForm({ contactId, email, firstName }) {
   const router = useRouter();
-  const WORKFLOW2_URL = "/api/submit-form";
+//  const WORKFLOW2_URL = "/api/submit-form";
 
 
 
@@ -259,6 +259,11 @@ export default function HabitForm({ contactId, email, firstName }) {
 
 
 
+
+
+
+
+
   // --- Handle form submission ---
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -277,14 +282,15 @@ export default function HabitForm({ contactId, email, firstName }) {
 
     try {
       const payload = { contactId, email, firstName, formData };
-      console.log("Submitting payload to Workflow 2:", payload);
+      console.log("Submitting payload to submit-form -> Workflow 2:", payload);
 
-      const res = await fetch(WORKFLOW2_URL, {
+      const res = await fetch("/api/submit-form", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
+      
       const rawText = await res.text();
       console.log("Raw Workflow2 response:", rawText);
 
@@ -296,6 +302,7 @@ export default function HabitForm({ contactId, email, firstName }) {
         throw new Error("Invalid JSON returned from Workflow 2");
       }
 
+      
       if (!res.ok) {
         console.error("Workflow2 HTTP error:", res.status, json);
         throw new Error(json?.error || `HTTP ${res.status}`);
@@ -318,6 +325,12 @@ export default function HabitForm({ contactId, email, firstName }) {
       setIsSubmitting(false);
     }
   };
+
+
+
+
+
+
 
 
 
