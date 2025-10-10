@@ -290,6 +290,12 @@ export default function HabitForm({ contactId, email, firstName }) {
         body: JSON.stringify(payload)
       });
 
+
+const json = await res.json();        // res.json() will handle parsing safely.
+
+      
+      
+  /*   // Remove manual res.text() and double parsing       // No risk of double-reading the body.
       
       const rawText = await res.text();
       console.log("Raw Workflow2 response:", rawText);
@@ -301,7 +307,7 @@ export default function HabitForm({ contactId, email, firstName }) {
         console.error("Failed to parse Workflow2 response:", parseErr);
         throw new Error("Invalid JSON returned from Workflow 2");
       }
-
+  */
       
       if (!res.ok) {
         console.error("Workflow2 HTTP error:", res.status, json);
