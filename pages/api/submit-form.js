@@ -42,12 +42,16 @@ export default async function handler(req, res) {
 
     
 
-
+// Reading the response
 let parsed = null;
 let text = "";
 
 try {
+  console.log("Raw Workflow 2 text response:", text);
+
   text = await fetchRes.text(); // read only once
+  console.log("Raw Workflow 2 text response:", text);
+
 
   if (text.trim()) {
     parsed = JSON.parse(text);
