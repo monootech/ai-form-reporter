@@ -2,7 +2,7 @@
 
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import { JSDOM } from "jsdom";
+
 
 
 
@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 
 // Initialize DOMPurify for server-safe use
-const window = new JSDOM('').window;
 const purify = DOMPurify(window);
 
 
@@ -42,7 +41,7 @@ export default function ReportPage() {
       
       // ✅ Optional: Transform JSON into HTML-ready format
       const rawAnalysis = reportData.analysis || "";
-      const cleanHtml = purify.sanitize(marked.parse(rawAnalysis));
+      const cleanHtml = DOMPurify.sanitize(marked.parse(rawAnalysis));
       setReport({ ...reportData, htmlContent: cleanHtml });
 
 
