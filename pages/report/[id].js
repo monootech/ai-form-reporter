@@ -1,6 +1,18 @@
 // pages/report/[id].js - Dynamic Report Page (Updated)
+
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+import { JSDOM } from "jsdom";
+
+
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
+
+// Initialize DOMPurify for server-safe use
+const window = new JSDOM('').window;
+const purify = DOMPurify(window);
+
 
 export default function ReportPage() {
   const router = useRouter();
@@ -27,12 +39,16 @@ export default function ReportPage() {
       const reportJson = await response.json();
       const reportData = reportJson.report;
 
+      
       // ✅ Optional: Transform JSON into HTML-ready format
-      const htmlContent = reportData.analysis
-        ? reportData.analysis.replace(/\n/g, '<br />') // simple line breaks
-        : '<p>No analysis content</p>';
+      const rawAnalysis = reportData.analysis || "";
+      const cleanHtml = purify.sanitize(marked.parse(rawAnalysis));
+      setReport({ ...reportData, htmlContent: cleanHtml });
 
-      setReport({ ...reportData, htmlContent });
+
+
+
+      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -97,13 +113,20 @@ export default function ReportPage() {
           </p>
         </div>
 
-        <div className="bg-white shadow-xl rounded-lg p-8 mb-8">
-          <div 
-            className="prose prose-lg max-w-none"
-            dangerouslySetInnerHTML={{ __html: report.htmlContent }} 
-          />
-        </div>
 
+    <div className="bg-white shadow-2xl rounded-2xl p-10 border-t-4 border-green-500 mb-8">
+      <div className="prose prose-lg max-w-none leading-relaxed text-gray-800">
+        <div dangerouslySetInnerHTML={{ __html: report.htmlContent }} />
+      </div>
+    </div>
+
+
+
+
+
+
+
+            
         <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
           <button
             onClick={handleDownloadPDF}
