@@ -214,6 +214,11 @@ export default function ReportPage() {
           </div>
         </div>
 
+
+
+
+
+
         {/* Dynamic Upsells (structured) */}
         <div className="mb-8">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">Recommended Tools & Next Steps</h3>
@@ -261,6 +266,70 @@ export default function ReportPage() {
             )}
           </div>
         </div>
+
+
+
+
+
+
+
+
+{/* 🧩 Recommended Tools & Next Steps */}
+<section className="mt-12">
+  <h2 className="text-2xl font-bold mb-6 text-center">
+    Recommended Tools & Next Steps
+  </h2>
+
+  <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+    {finalReport?.structuredUpsells?.filter(u => u.show).map((upsell) => (
+      <div key={upsell.id} className="p-6 bg-white shadow-md rounded-2xl border border-gray-200">
+        <h3 className="text-lg font-semibold capitalize mb-2">{formatProductName(upsell.id)}</h3>
+
+        <p className="text-gray-700 mb-4 whitespace-pre-line">
+          {upsell.reason}
+        </p>
+
+        {/* Show button only if user needs it */}
+        {upsell.UserNeeds ? (
+          <a
+            href={upsell.purchaseLink}
+            className="block w-full text-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Get Access →
+          </a>
+        ) : (
+          <p className="text-sm text-green-700 font-medium text-center mt-2">
+            ✅ You already own this!
+          </p>
+        )}
+      </div>
+    ))}
+  </div>
+</section>
+
+
+
+function formatProductName(id) {
+  const names = {
+    main_tracker: "Viral Habit Tracker Kit",
+    template_vault: "Template Vault",
+    accountability_system: "Accountability System",
+    sheets_mastery_course: "Google Sheets Mastery Course",
+    community_basic: "Habit Community (Basic)",
+    community_vip: "Habit Community (VIP)"
+  };
+  return names[id] || id.replace(/_/g, " ");
+}
+
+
+
+
+
+
+
+
+
+
 
         {/* PDF download */}
         <div className="flex justify-center mb-8">
