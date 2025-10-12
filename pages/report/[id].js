@@ -325,7 +325,7 @@ useEffect(() => {
           )}
 
           {/* --- Debug info (keep for devs) --- */}
-          <span className="text-xs text-gray-400 ml-2">{upsell?.id}</span>
+      //    <span className="text-xs text-gray-400 ml-2">{upsell?.id}</span>
         </div>
       </div>
     );
