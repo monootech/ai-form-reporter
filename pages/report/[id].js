@@ -334,7 +334,7 @@ useEffect(() => {
   <div className="text-gray-600">No recommended tools or next steps at this time.</div>
 )}
 
-
+</div> {/* ✅ this closing brace was missing! */}
 
 
           
