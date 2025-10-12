@@ -309,29 +309,7 @@ export default function ReportPage() {
 
 
 
-// New thing Start
 
-function formatProductName(id) {
-  if (!id || typeof id !== "string") return "";
-
-  const names = {
-    main_tracker: "Viral Habit Tracker Kit",
-    template_vault: "Template Vault",
-    accountability_system: "Accountability System",
-    sheets_mastery_course: "Google Sheets Mastery Course",
-    community_basic: "Habit Community (Basic)",
-    community_vip: "Habit Community (VIP)",
-  };
-
-  // Use custom name if available, otherwise format fallback
-  if (names[id]) return names[id];
-
-  // Fallback: replace underscores, capitalize first letter
-  const formatted = id.replace(/_/g, " ");
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-// New thing End
 
 
 
