@@ -271,16 +271,10 @@ useEffect(() => {
 
     const alreadyOwned = !userNeeds;
 
-    // --- Map internal ID → display name (to show nice labels) ---
-    const productNameMap = {
-      main_tracker: "Viral Habit Tracker Kit",
-      template_vault: "Template Vault",
-      accountability_system: "Accountability System",
-      sheets_mastery_course: "Sheets Mastery Course",
-      community_basic: "Habit Builder Community (Basic)",
-      community_vip: "Habit Builder Community (VIP)"
-    };
-    const displayName = productNameMap[upsell?.id] || formatUpsellLabel(upsell?.id);
+
+const displayName = upsell?.name || formatUpsellLabel(upsell?.id);
+
+    
 
     return (
       <div
