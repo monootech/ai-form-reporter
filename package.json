@@ -18,7 +18,7 @@
     "react-confetti": "^6.4.0",
     "zod": "^3.23.1",
     "marked": "^15.0.2",
-    "dompurify": "^3.1.7"
+    "DOMPurify": "^3.1.7"
   },
   "devDependencies": {
     "tailwindcss": "^3.3.3",
