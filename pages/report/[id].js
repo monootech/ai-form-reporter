@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
+
 
 
 
@@ -21,6 +23,7 @@ export default function ReportPage() {
   const { id } = router.query;
 
   const [report, setReport] = useState(null);      // will hold the raw report object from API + htmlContent
+  if (!report) return <LoadingSpinner />;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -241,39 +244,35 @@ useEffect(() => {
 
 {/* enhanced visual renderer Start */}
 
-<div className="prose prose-lg max-w-none leading-relaxed text-gray-800">
-  {/* Render each section separately with a visual divider */}
-  {Array.isArray(report?.report?.reportSections) ? (
-    report.report.reportSections.map((section, index) => (
-      <div key={index} className="mb-12">
-        {section?.title && (
-          <h2 className="text-2xl font-bold mt-6 mb-3 flex items-center gap-2">
-            {/* Extract emoji if present in title */}
-            <span>{section.title.match(/^[^\w\s]/)?.[0] || "📘"}</span>
-            <span>{section.title.replace(/^[^\w\s]/, "").trim()}</span>
-          </h2>
-        )}
+{Array.isArray(report?.report?.reportSections) && report.report.reportSections.length > 0 ? (
+  report.report.reportSections.map((section, index) => (
+    <div key={index} className="mb-12">
+      {section?.title && (
+        <h2 className="text-2xl font-bold mt-6 mb-3 flex items-center gap-2">
+          <span>{section.title.match(/^[^\w\s]/)?.[0] || "📘"}</span>
+          <span>{section.title.replace(/^[^\w\s]/, "").trim()}</span>
+        </h2>
+      )}
 
-        {/* Section Content */}
-        <div
-          className="mt-2 text-gray-800"
-          dangerouslySetInnerHTML={{
-            __html: domPurify?.sanitize(marked.parse(section?.content || "")),
-          }}
-        />
+      <div
+        className="mt-2 text-gray-800"
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(marked.parse(section?.content || "")),
+        }}
+      />
 
-        {/* 🌿 Visual Divider */}
-        {index < report.report.reportSections.length - 1 && (
-          <div className="flex justify-center my-8">
-            <span className="text-2xl text-gray-400">🌿🌿🌿</span>
-          </div>
-        )}
-      </div>
-    ))
-  ) : (
-    <div dangerouslySetInnerHTML={{ __html: report.htmlContent || "<p>No content available.</p>" }} />
-  )}
-</div>
+      {index < report.report.reportSections.length - 1 && (
+        <div className="flex justify-center my-8">
+          <span className="text-2xl text-gray-400">🌿🌿🌿</span>
+        </div>
+      )}
+    </div>
+  ))
+) : (
+  <p className="text-gray-500">No report sections available.</p>
+)}
+
+          
 {/* enhanced visual renderer End */}
 
 
