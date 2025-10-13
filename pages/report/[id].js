@@ -313,7 +313,8 @@ useEffect(() => {
 
     if (!show) return null; // Gemini said not to display this upsell
 
-    const alreadyOwned = !userNeeds;
+    const alreadyOwned = upsell?.userNeeds === false;
+
 
 
 const displayName = upsell?.name || formatUpsellLabel(upsell?.id);
