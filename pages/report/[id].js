@@ -236,11 +236,57 @@ useEffect(() => {
 
         {/* Main Report content */}
         <div className="bg-white shadow-2xl rounded-2xl p-10 border-t-4 border-green-500 mb-8">
-          <div className="prose prose-lg max-w-none leading-relaxed text-gray-800">
-            {/* NOTE: we already sanitized htmlContent earlier with DOMPurify (when available) */}
-            <div dangerouslySetInnerHTML={{ __html: report.htmlContent || "<p>No content available.</p>" }} />
+        
+          
+
+{/* enhanced visual renderer Start */}
+
+<div className="prose prose-lg max-w-none leading-relaxed text-gray-800">
+  {/* Render each section separately with a visual divider */}
+  {Array.isArray(report?.report?.reportSections) ? (
+    report.report.reportSections.map((section, index) => (
+      <div key={index} className="mb-12">
+        {section?.title && (
+          <h2 className="text-2xl font-bold mt-6 mb-3 flex items-center gap-2">
+            {/* Extract emoji if present in title */}
+            <span>{section.title.match(/^[^\w\s]/)?.[0] || "📘"}</span>
+            <span>{section.title.replace(/^[^\w\s]/, "").trim()}</span>
+          </h2>
+        )}
+
+        {/* Section Content */}
+        <div
+          className="mt-2 text-gray-800"
+          dangerouslySetInnerHTML={{
+            __html: domPurify?.sanitize(marked.parse(section?.content || "")),
+          }}
+        />
+
+        {/* 🌿 Visual Divider */}
+        {index < report.report.reportSections.length - 1 && (
+          <div className="flex justify-center my-8">
+            <span className="text-2xl text-gray-400">🌿🌿🌿</span>
           </div>
-        </div>
+        )}
+      </div>
+    ))
+  ) : (
+    <div dangerouslySetInnerHTML={{ __html: report.htmlContent || "<p>No content available.</p>" }} />
+  )}
+</div>
+{/* enhanced visual renderer End */}
+
+
+
+
+
+
+
+          
+        
+  
+  
+  </div>
 
 
 
