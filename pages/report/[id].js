@@ -23,7 +23,6 @@ export default function ReportPage() {
   const { id } = router.query;
 
   const [report, setReport] = useState(null);      // will hold the raw report object from API + htmlContent
-  if (!report) return <LoadingSpinner />;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
