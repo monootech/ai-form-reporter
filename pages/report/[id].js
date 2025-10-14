@@ -243,33 +243,36 @@ useEffect(() => {
 
 {/* enhanced visual renderer Start */}
 
+{/* Enhanced Report Renderer — Clean Modern Style */}
+  
 {Array.isArray(report?.report?.reportSections) && report.report.reportSections.length > 0 ? (
-  report.report.reportSections.map((section, index) => (
-    <div key={index} className="mb-12">
-      {section?.title && (
-        <h2 className="text-2xl font-bold mt-6 mb-3 flex items-center gap-2">
-          <span>{section.title.match(/^[^\w\s]/)?.[0] || "📘"}</span>
-          <span>{section.title.replace(/^[^\w\s]/, "").trim()}</span>
-        </h2>
-      )}
+  <div className="space-y-16">
+    {report.report.reportSections.map((section, index) => (
+      <section
+        key={index}
+        className="bg-white shadow-sm rounded-2xl p-8 border border-gray-100 hover:shadow-md transition"
+      >
+        {/* Section Title */}
+        {section?.title && (
+          <h2 className="text-3xl font-semibold text-gray-900 mb-6 border-b border-gray-100 pb-2">
+            {section.title.replace(/^[^\w\s]/, "").trim()}
+          </h2>
+        )}
 
-      <div
-        className="mt-2 text-gray-800"
-        dangerouslySetInnerHTML={{
-          __html: DOMPurify.sanitize(marked.parse(section?.content || "")),
-        }}
-      />
-
-      {index < report.report.reportSections.length - 1 && (
-        <div className="flex justify-center my-8">
-          <span className="text-2xl text-gray-400">🌿🌿🌿</span>
-        </div>
-      )}
-    </div>
-  ))
+        {/* Section Content (Markdown → Safe HTML) */}
+        <div
+          className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(marked.parse(section?.content || "")),
+          }}
+        />
+      </section>
+    ))}
+  </div>
 ) : (
-  <p className="text-gray-500">No report sections available.</p>
+  <p className="text-gray-500 text-center py-12">No report sections available.</p>
 )}
+
 
           
 {/* enhanced visual renderer End */}
