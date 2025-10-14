@@ -241,41 +241,78 @@ useEffect(() => {
         
           
 
-{/* enhanced visual renderer Start */}
+{/* === Enhanced Structured Report Renderer (JSON Schema v2.1) === */}
 
-{/* Enhanced Report Renderer — Clean Modern Style */}
-  
 {Array.isArray(report?.report?.reportSections) && report.report.reportSections.length > 0 ? (
-  <div className="space-y-16">
-    {report.report.reportSections.map((section, index) => (
-      <section
-        key={index}
-        className="bg-white shadow-sm rounded-2xl p-8 border border-gray-100 hover:shadow-md transition"
-      >
+  <div className="space-y-16"> {/* spacing between main sections */}
+    {report.report.reportSections.map((section, sectionIdx) => (
+      <div key={sectionIdx} className="border-b border-gray-200 pb-10 last:border-none">
         {/* Section Title */}
         {section?.title && (
-          <h2 className="text-3xl font-semibold text-gray-900 mb-6 border-b border-gray-100 pb-2">
-            {section.title.replace(/^[^\w\s]/, "").trim()}
+          <h2 className="text-3xl font-bold text-gray-900 mb-6 tracking-tight">
+            {section.title}
           </h2>
         )}
 
-        {/* Section Content (Markdown → Safe HTML) */}
-        <div
-          className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-          dangerouslySetInnerHTML={{
-            __html: DOMPurify.sanitize(marked.parse(section?.content || "")),
-          }}
-        />
-      </section>
+        {/* Optional summary */}
+        {section?.summary && (
+          <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+            {section.summary}
+          </p>
+        )}
+
+        {/* Subsections */}
+        {Array.isArray(section.subsections) && section.subsections.length > 0 && (
+          <div className="space-y-10">
+            {section.subsections.map((sub, subIdx) => (
+              <div key={subIdx} className="bg-white/70 rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+                
+                {/* Subtitle */}
+                {sub?.subtitle && (
+                  <h3 className="text-2xl font-semibold text-green-700 mb-4">
+                    {sub.subtitle}
+                  </h3>
+                )}
+
+                {/* Paragraphs */}
+                {Array.isArray(sub.paragraphs) && sub.paragraphs.length > 0 && (
+                  <div className="space-y-4 text-gray-800 leading-relaxed">
+                    {sub.paragraphs.map((p, pIdx) => (
+                      <p key={pIdx}>{p}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Bullets */}
+                {Array.isArray(sub.bullets) && sub.bullets.length > 0 && (
+                  <ul className="list-disc list-inside mt-4 space-y-2 text-gray-700">
+                    {sub.bullets.map((b, bIdx) => (
+                      <li key={bIdx}>{b}</li>
+                    ))}
+                  </ul>
+                )}
+
+                {/* Quotes */}
+                {Array.isArray(sub.quotes) && sub.quotes.length > 0 && (
+                  <div className="mt-6 border-l-4 border-green-500 pl-4 text-gray-600 italic space-y-2">
+                    {sub.quotes.map((q, qIdx) => (
+                      <blockquote key={qIdx}>"{q}"</blockquote>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     ))}
   </div>
 ) : (
-  <p className="text-gray-500 text-center py-12">No report sections available.</p>
+  <p className="text-gray-500 italic">No structured sections available.</p>
 )}
 
+{/* === End Enhanced Renderer === */}
 
-          
-{/* enhanced visual renderer End */}
 
 
 
