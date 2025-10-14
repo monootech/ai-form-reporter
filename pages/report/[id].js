@@ -337,81 +337,62 @@ useEffect(() => {
 
 
 
-
-
-
 {Array.isArray(report.structuredUpsells) && report.structuredUpsells.length > 0 ? (
-  report.structuredUpsells.map((upsell) => {
-    // --- Normalize key casing ---
-    const show =
-      upsell?.show === true || upsell?.show === "true";
-    const userNeeds =
-      upsell?.userNeeds === true ||
-      upsell?.UserNeeds === true ||
-      upsell?.userNeeds === "true" ||
-      upsell?.UserNeeds === "true";
+  report.structuredUpsells
+    .filter(u => u.show === true) // ✅ Only show upsells marked show:true
+    .map((upsell) => {
+      const userHas = upsell?.userHas === true; // Use explicit userHas from step_2
+      const displayName = upsell?.name || formatUpsellLabel(upsell?.id);
 
-    if (!show) return null; // Gemini said not to display this upsell
+      return (
+        <div key={upsell?.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow">
+          {/* --- Product Header --- */}
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-lg font-semibold text-gray-800">{displayName}</h4>
+            {userHas && (
+              <span className="text-green-600 font-semibold text-sm">✅ You own this</span>
+            )}
+          </div>
 
-    const alreadyOwned = upsell?.userNeeds === false;
+          {/* --- Product Reason --- */}
+          <p className="text-gray-700 mb-3 whitespace-pre-line">
+            {upsell?.reason || "This tool can help you achieve your goals faster."}
+          </p>
 
-
-
-const displayName = upsell?.name || formatUpsellLabel(upsell?.id);
-
-    
-
-    return (
-      <div
-        key={upsell?.id}
-        className="bg-white p-5 rounded-xl border border-gray-200 shadow-md hover:shadow-lg transition-shadow"
-      >
-        {/* --- Product Header --- */}
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-lg font-semibold text-gray-800">{displayName}</h4>
-          {alreadyOwned && (
-            <span className="text-green-600 font-semibold text-sm">✅ You own this</span>
-          )}
+          {/* --- Action Button or Note --- */}
+          <div className="flex justify-between items-center">
+            {!userHas && (
+              <a
+                href={upsell?.purchaseLink || "#"}
+                onClick={() => trackClick({ linkType: `upsell_click:${upsell?.id}` })}
+                className={`inline-block px-5 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                  upsell?.id === "main_tracker"
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+                }`}
+              >
+                {upsell?.id === "main_tracker"
+                  ? "📈 Get the Viral Habit Tracker Kit"
+                  : `Unlock ${displayName}`}
+              </a>
+            )}
+            {userHas && (
+              <span className="text-sm text-gray-500 italic">
+                You already have access to this system.
+              </span>
+            )}
+          </div>
         </div>
-
-        {/* --- Product Reason --- */}
-        <p className="text-gray-700 mb-3 whitespace-pre-line">
-          {upsell?.reason || "This tool can help you achieve your goals faster."}
-        </p>
-
-        {/* --- Action Button or Note --- */}
-        <div className="flex justify-between items-center">
-          {userNeeds ? (
-            <a
-              href={upsell?.purchaseLink || "#"}
-              onClick={() => trackClick({ linkType: `upsell_click:${upsell?.id}` })}
-              className={`inline-block px-5 py-2 rounded-lg font-semibold text-sm transition-colors ${
-                upsell?.id === "main_tracker"
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
-              }`}
-            >
-              {upsell?.id === "main_tracker"
-                ? "📈 Get the Viral Habit Tracker Kit"
-                : `Unlock ${displayName}`}
-            </a>
-          ) : (
-            <span className="text-sm text-gray-500 italic">
-              {alreadyOwned
-                ? "You already have access to this system."
-                : "Not recommended for your current stage."}
-            </span>
-          )}
-
-          {/* --- Debug info (keep for devs) --- */}
-     {/*    <span className="text-xs text-gray-400 ml-2">{upsell?.id}</span>    */}
-        </div>
-      </div>
-    );
-  })
+      );
+    })
 ) : (
   <div className="text-gray-600">No recommended tools or next steps at this time.</div>
 )}
+
+
+
+
+
 
 </div> {/* ✅ this closing brace was missing! */}
 
