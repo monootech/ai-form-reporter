@@ -448,11 +448,13 @@ const json = await res.json();        // res.json() will handle parsing safely.
     ></motion.div>
   </div>
 
-  {/* --- Step Indicator (friendly tone) --- */}
+  {/* --- Step Indicator (friendly tone) --- this one is in the top, below the progress bar
   <div className="text-center text-gray-700 text-sm font-medium mb-4">
     ✨ Step {currentStep + 1} of {steps.length} —{" "}
     {Math.round(((currentStep + 1) / steps.length) * 100)}% complete
   </div>
+*/}
+
 
   {/* --- Animated Motivation Message --- */}
   <AnimatePresence mode="wait">
