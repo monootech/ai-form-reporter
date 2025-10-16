@@ -134,20 +134,18 @@ export default function HabitForm({ contactId, email, firstName }) {
     {
   title: "About You (Optional, Highly Recommended)",
   question: "Tell us about yourself: your education, skills, professional experience, hobbies, and anything you’re proud of. What do you enjoy doing most, and what frustrates you?",
-<p className="text-gray-500 text-sm mb-2">Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be! </p>,
   type: "text",
   field: "backgroundSkills",
-  placeholder: "For example: 'I have 5 years in marketing, I enjoy creative problem-solving, I struggle with staying consistent…'"
+  placeholder: "For example: 'I have 5 years in marketing, I enjoy creative problem-solving, I struggle with staying consistent…'",
+  optionalNote: "Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!"
 },
 {
   title: "Your Goals & Ambitions (Optional, Highly Recommended)",
   question: "What are your biggest goals, ambitions, or dreams right now — personal, professional, or creative? What motivates you, and what usually holds you back?",
-<p className="text-gray-500 text-sm mb-2">
-  Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!
-</p>,
   type: "text",
   field: "goalsAmbitions",
-  placeholder: "For example: 'I want to run my own business, stay fit, and become an expert in data analytics…'"
+  placeholder: "For example: 'I want to run my own business, stay fit, and become an expert in data analytics…'",
+  optionalNote: "Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!"
 }
 
   ];
@@ -220,18 +218,32 @@ export default function HabitForm({ contactId, email, firstName }) {
           </div>
         );
 
-      // Textarea input
-      case "text":
-        return (
-          <textarea
-            value={value}
-            onChange={(e) => setFormData({ ...formData, [step.field]: e.target.value })}
-            rows={4}
-            className="w-full p-3 border border-gray-300 rounded-lg"
-            placeholder={step.placeholder || ""}
-            required
-          />
-        );
+
+
+
+// Textarea input
+case "text":
+  return (
+    <div>
+      {step.optionalNote && (
+        <p className="text-gray-500 text-sm mb-2">
+          {step.optionalNote}
+        </p>
+      )}
+      <textarea
+        value={value}
+        onChange={(e) => setFormData({ ...formData, [step.field]: e.target.value })}
+        rows={4}
+        className="w-full p-3 border border-gray-300 rounded-lg"
+        placeholder={step.placeholder || ""}
+        // Only require if the field isn’t optional
+        required={!step.optionalNote}
+      />
+    </div>
+  );
+
+
+
 
       // Custom approach field with optional textarea
       case "approach":
