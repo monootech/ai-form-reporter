@@ -436,15 +436,7 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
 
-{/* --- Progress Bar --- */}
-<div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-  <div
-    className="bg-green-600 h-2 rounded-full transition-all duration-500 ease-in-out"
-    style={{
-      width: `${((currentStep + 1) / steps.length) * 100}%`,
-    }}
-  ></div>
-</div>
+
 
 
 
