@@ -240,23 +240,16 @@ const motivationMessages = [
 // Textarea input
 case "text":
   return (
-    <div>
-      {step.optionalNote && (
-        <p className="text-gray-500 text-sm mb-2">
-          {step.optionalNote}
-        </p>
-      )}
-      <textarea
-        value={value}
-        onChange={(e) => setFormData({ ...formData, [step.field]: e.target.value })}
-        rows={4}
-        className="w-full p-3 border border-gray-300 rounded-lg"
-        placeholder={step.placeholder || ""}
-        // Only require if the field isn’t optional
-        required={!step.optionalNote}
-      />
-    </div>
+    <textarea
+      value={value}
+      onChange={(e) => setFormData({ ...formData, [step.field]: e.target.value })}
+      rows={4}
+      className="w-full p-3 border border-gray-300 rounded-lg"
+      placeholder={step.placeholder || ""}
+      required={!step.optionalNote}
+    />
   );
+
 
 
 
