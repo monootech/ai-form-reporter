@@ -437,7 +437,7 @@ const json = await res.json();        // res.json() will handle parsing safely.
 {/* --- Progress + Question Section --- */}
 <div className="mb-6 w-full">
 
-  {/* --- Animated Progress Bar --- */}
+  {/* --- Animated Progress Bar ---  this one everytime restarts from 0 width
   <div className="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
     <motion.div
       key={currentStep}
@@ -447,6 +447,19 @@ const json = await res.json();        // res.json() will handle parsing safely.
       className="bg-green-600 h-2 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.6)]"
     ></motion.div>
   </div>
+*/}
+
+
+{/* --- Animated Progress Bar --- this one continues */}
+<div className="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+  <motion.div
+    animate={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+    transition={{ duration: 0.8, ease: "easeInOut" }}
+    className="bg-green-600 h-2 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.6)]"
+  ></motion.div>
+</div>
+
+
 
   {/* --- Step Indicator (friendly tone) --- this one is in the top, below the progress bar
   <div className="text-center text-gray-700 text-sm font-medium mb-4">
