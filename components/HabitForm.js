@@ -444,26 +444,36 @@ const json = await res.json();        // res.json() will handle parsing safely.
 {/* --- Progress + Question Section --- */}
 <div className="mb-6 w-full">
 
-  {/* --- Progress Bar --- */}
-  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-    <div
-      className="bg-green-600 h-2 rounded-full transition-all duration-500 ease-in-out"
-      style={{
-        width: `${((currentStep + 1) / steps.length) * 100}%`,
-      }}
-    ></div>
+  {/* --- Animated Progress Bar --- */}
+  <div className="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+    <motion.div
+      key={currentStep}
+      initial={{ width: 0 }}
+      animate={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+      transition={{ duration: 0.6, ease: "easeInOut" }}
+      className="bg-green-600 h-2 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.6)]"
+    ></motion.div>
   </div>
 
-  {/* --- Step indicator (fun + dynamic) --- */}
+  {/* --- Step Indicator (friendly tone) --- */}
   <div className="text-center text-gray-700 text-sm font-medium mb-4">
     ✨ Step {currentStep + 1} of {steps.length} —{" "}
     {Math.round(((currentStep + 1) / steps.length) * 100)}% complete
   </div>
 
-  {/* --- Motivation message --- */}
-  <p className="text-center text-gray-500 italic mb-6">
-    {motivationMessages[currentStep] || "Keep going — you’re doing great!"}
-  </p>
+  {/* --- Animated Motivation Message --- */}
+  <AnimatePresence mode="wait">
+    <motion.p
+      key={currentStep}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
+      className="text-center text-gray-500 italic mb-6"
+    >
+      {motivationMessages[currentStep] || "Keep going — you’re doing great!"}
+    </motion.p>
+  </AnimatePresence>
 
   {/* --- Question animation wrapper --- */}
   <AnimatePresence mode="wait">
@@ -481,7 +491,7 @@ const json = await res.json();        // res.json() will handle parsing safely.
       {/* Question text */}
       <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
 
-      {/* Optional note (like “optional but recommended”) */}
+      {/* Optional note */}
       {steps[currentStep].optionalNote && (
         <p className="text-gray-500 text-sm mb-4">{steps[currentStep].optionalNote}</p>
       )}
@@ -491,6 +501,7 @@ const json = await res.json();        // res.json() will handle parsing safely.
     </motion.div>
   </AnimatePresence>
 </div>
+
 
 
 
