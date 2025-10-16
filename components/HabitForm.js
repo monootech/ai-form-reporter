@@ -392,28 +392,57 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
 
-  // --- Show success screen if report ready ---
-  if (submitSuccess) {
-    return (
-      <div className="text-center py-20">
-        <Confetti />
-        <h2 className="text-3xl font-bold text-green-600 mb-4">
-          Your Personalized AI Habit Blueprint™ is Ready!
-        </h2>
-        <p className="text-gray-700 mb-6">
-          Click the button below to view your full blueprint report.
-        </p>
-        <a
-          href={`/report/${contactId}`}
-          // target="_blank"
-          // rel="noopener noreferrer"
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-        >
-          View My Blueprint
-        </a>
-      </div>
-    );
-  }
+  
+// --- Show success screen if report ready ---
+if (submitSuccess) {
+  const formattedDate = new Date().toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return (
+    <div className="text-center py-20 px-4 max-w-2xl mx-auto">
+      <Confetti />
+
+      {/* Main Title */}
+      <h1 className="text-3xl md:text-4xl font-extrabold text-green-700 mb-2">
+        🎯 {firstName}'s Personalized AI Habit Blueprint™
+      </h1>
+
+      {/* Subtitle */}
+      <p className="text-lg md:text-xl text-gray-600 mb-4">
+        ✨ Crafted just for you (to help you level up) — on {formattedDate}
+      </p>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-200 my-4 mx-auto w-24"></div>
+
+      {/* Email Info */}
+      <p className="text-gray-500 mb-2">
+        📧 A link to your full Habit Blueprint has been sent to your email ({email})
+      </p>
+
+      {/* Branding */}
+      <p className="text-gray-400 text-sm mb-6">habitmasterysystem.com</p>
+
+      {/* View Report Button */}
+      <a
+        href={`/report/${contactId}`}
+        className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+      >
+        View My Blueprint
+      </a>
+    </div>
+  );
+}
+
+
+
 
 
 
