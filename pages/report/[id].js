@@ -31,6 +31,16 @@ export default function ReportPage() {
   // We'll load DOMPurify only on client inside effect to avoid SSR issues
   const [domPurify, setDomPurify] = useState(null);
 
+
+// Proper case helper function
+  const properCase = (name) => {
+  if (!name || typeof name !== "string") return "";
+  return name[0].toUpperCase() + name.slice(1).toLowerCase();
+};
+
+
+
+  
   useEffect(() => {
     // dynamic import of DOMPurify — only runs in browser
     (async () => {
@@ -228,13 +238,6 @@ useEffect(() => {
     year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
   }) : "Unknown date";
 
-
-
- // Proper case helper function
-  const properCase = (name) => {
-    if (!name) return "";
-    return name[0].toUpperCase() + name.slice(1).toLowerCase();
-  };
 
 
 
