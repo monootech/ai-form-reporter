@@ -393,6 +393,7 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
   
+
 // --- Show success screen if report ready ---
 if (submitSuccess) {
   const formattedDate = new Date().toLocaleString("en-US", {
@@ -405,25 +406,21 @@ if (submitSuccess) {
     hour12: true,
   });
 
+  // Proper case helper function
+  const properCase = (name) => {
+    if (!name) return "";
+    return name[0].toUpperCase() + name.slice(1).toLowerCase();
+  };
+
   return (
     <div className="text-center py-20 px-4 max-w-2xl mx-auto">
       <Confetti />
 
-
-  const properCase = (name) => {
-  if (!name) return "";
-  return name[0].toUpperCase() + name.slice(1).toLowerCase();
-};
-
-
-  
       {/* Main Title */}
       <h1 className="text-3xl md:text-4xl font-extrabold text-green-700 mb-2">
         🎯 {properCase(firstName)}'s Personalized AI Habit Blueprint™
       </h1>
 
-
-  
       {/* Subtitle */}
       <p className="text-lg md:text-xl text-gray-600 mb-4">
         ✨ Crafted just for you (to help you level up) — on {formattedDate}
