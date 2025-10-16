@@ -228,13 +228,24 @@ useEffect(() => {
     year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
   }) : "Unknown date";
 
+
+
+ // Proper case helper function
+  const properCase = (name) => {
+    if (!name) return "";
+    return name[0].toUpperCase() + name.slice(1).toLowerCase();
+  };
+
+
+
+  
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-green-700 mb-4">🎯 Personalized AI Habit Blueprint</h1>
+          <h1 className="text-4xl font-bold text-green-700 mb-4">🎯 {properCase(firstName)}'s Personalized AI Habit Blueprint™ </h1>
           <p className="text-gray-600 text-lg">Generated on {dateText}</p>
         </div>
 
