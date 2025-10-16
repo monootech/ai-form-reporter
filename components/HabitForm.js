@@ -16,6 +16,7 @@ export default function HabitForm({ contactId, email, firstName }) {
   const [isSubmitting, setIsSubmitting] = useState(false);     // track if submission is in progress
 
 
+  
 
   // --- Form navigation ---
   const [currentStep, setCurrentStep] = useState(0);           // track current question step
@@ -395,21 +396,10 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
 
-const HabitForm = ({ contactId, email, firstName }) => {
-  const router = useRouter();
-
-  // --- Toggle this for testing success screen ---
-  const [showTestSuccess, setShowTestSuccess] = useState(true); // <-- true = show test success screen, false, show real form.
-
-
-
-
-
-
   
 
 // --- Show success screen if report ready ---
-if (submitSuccess || showTestSuccess) {
+if (submitSuccess) {
   const formattedDate = new Date().toLocaleString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -457,23 +447,7 @@ if (submitSuccess || showTestSuccess) {
         className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
       >
         View My Blueprint
-      </a>
-
-
-          
-      <div className="mt-6">
-        <button
-          className="text-sm text-gray-500 underline"
-          onClick={() => setShowTestSuccess(false)}
-        >
-          ← Go back to form
-        </button>
-      </div>
-
-
-            
-
-          
+      </a>          
     </div>
   );
 }
