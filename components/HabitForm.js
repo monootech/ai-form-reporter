@@ -40,6 +40,22 @@ export default function HabitForm({ contactId, email, firstName }) {
 
 
 
+  // --- Motivation messages for each step (fun + personalized tone) ---
+const motivationMessages = [
+  "Small steps, big change 💪",
+  "You’re doing awesome — keep going! 🌱",
+  "Clarity creates power 🚀",
+  "Your habits define your future — this matters 💡",
+  "You’re  halfway through! Momentum is your superpower ⚡",
+  "Every answer gets your AI Blueprint smarter 🤖",
+  "Stay curious — insights are forming 🧠",
+  "Great progress! Your future self thanks you 🙌",
+  "Almost done — let’s finish strong 🎯",
+  "Final touch — your Blueprint is about to be ready 🏁",
+];
+
+
+
   // --- Steps and questions configuration ---
   const steps = [
     {
@@ -137,7 +153,7 @@ export default function HabitForm({ contactId, email, firstName }) {
   type: "text",
   field: "backgroundSkills",
   placeholder: "For example: 'I have 5 years in marketing, I enjoy creative problem-solving, I struggle with staying consistent…'",
-  optionalNote: "Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!"
+  optionalNote: "🌟 Optional but highly recommended — the more details you share, the smarter and more tailored your Habit Blueprint becomes!"
 },
 {
   title: "Your Goals & Ambitions (Optional, Highly Recommended)",
@@ -145,7 +161,7 @@ export default function HabitForm({ contactId, email, firstName }) {
   type: "text",
   field: "goalsAmbitions",
   placeholder: "For example: 'I want to run my own business, stay fit, and become an expert in data analytics…'",
-  optionalNote: "Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!"
+  optionalNote: "🌟 Optional but highly recommended — this helps personalize your Blueprint’s strategy for your long-term success."
 }
 
   ];
@@ -419,28 +435,75 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
 
-      {/* --- Question Section --- */}
-      <div className="mb-6 w-full">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, y: 20 }}  // slide up from bottom & fade
-            animate={{ opacity: 1, y: 0 }}   // move to center
-            exit={{ opacity: 0, y: -20 }}    // slide up & fade out
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            className="w-full"
-          >
-            {/* Question title */}
-            <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
 
-            {/* Question text */}
-            <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
+{/* --- Progress Bar --- */}
+<div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+  <div
+    className="bg-green-600 h-2 rounded-full transition-all duration-500 ease-in-out"
+    style={{
+      width: `${((currentStep + 1) / steps.length) * 100}%`,
+    }}
+  ></div>
+</div>
 
-            {/* Options / input field */}
-            <div className="mb-6">{renderField(steps[currentStep])}</div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
+
+
+
+{/* --- Progress + Question Section --- */}
+<div className="mb-6 w-full">
+
+  {/* --- Progress Bar --- */}
+  <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+    <div
+      className="bg-green-600 h-2 rounded-full transition-all duration-500 ease-in-out"
+      style={{
+        width: `${((currentStep + 1) / steps.length) * 100}%`,
+      }}
+    ></div>
+  </div>
+
+  {/* --- Step indicator (fun + dynamic) --- */}
+  <div className="text-center text-gray-700 text-sm font-medium mb-4">
+    ✨ Step {currentStep + 1} of {steps.length} —{" "}
+    {Math.round(((currentStep + 1) / steps.length) * 100)}% complete
+  </div>
+
+  {/* --- Motivation message --- */}
+  <p className="text-center text-gray-500 italic mb-6">
+    {motivationMessages[currentStep] || "Keep going — you’re doing great!"}
+  </p>
+
+  {/* --- Question animation wrapper --- */}
+  <AnimatePresence mode="wait">
+    <motion.div
+      key={currentStep}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.35, ease: "easeInOut" }}
+      className="w-full"
+    >
+      {/* Question title */}
+      <h2 className="text-2xl font-bold mb-2">{steps[currentStep].title}</h2>
+
+      {/* Question text */}
+      <p className="text-gray-600 mb-6">{steps[currentStep].question}</p>
+
+      {/* Optional note (like “optional but recommended”) */}
+      {steps[currentStep].optionalNote && (
+        <p className="text-gray-500 text-sm mb-4">{steps[currentStep].optionalNote}</p>
+      )}
+
+      {/* Options / input field */}
+      <div className="mb-6">{renderField(steps[currentStep])}</div>
+    </motion.div>
+  </AnimatePresence>
+</div>
+
+
+
+
+
 
 
 
@@ -489,9 +552,13 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
       {/* --- Step Indicator --- */}
-      <div className="mt-4 text-sm text-gray-600">
-        Step {currentStep + 1} of {steps.length}
-      </div>
+<div className="mt-4 text-sm text-gray-600 text-center">
+  {currentStep < steps.length
+    ? `✨ ${Math.round(((currentStep + 1) / steps.length) * 100)}% complete — keep going!`
+    : "🎉 You're done! Generating your blueprint..."}
+</div>
+
+
 
     </form>
   );
