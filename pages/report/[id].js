@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import SectionIcon from "components/SectionIcon"; // adjust path if needed
+import SectionIcon from "../../components/SectionIcon"; // adjust path if needed
 
 
 
