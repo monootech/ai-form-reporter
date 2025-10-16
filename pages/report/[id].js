@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import SectionIcon from "../components/SectionIcon"; // adjust path if needed
+
 
 
 
@@ -247,13 +249,38 @@ useEffect(() => {
   <div className="space-y-16"> {/* spacing between main sections */}
     {report.report.reportSections.map((section, sectionIdx) => (
       <div key={sectionIdx} className="border-b border-gray-200 pb-10 last:border-none">
-        {/* Section Title */}
-        {section?.title && (
-          <h2 className="text-3xl font-bold text-gray-900 mb-6 tracking-tight">
-            {section.title}
-          </h2>
-        )}
 
+
+
+  
+  {/* Section Title - now adds SVG icons tooo */}
+{section?.title && (
+  <div className="flex items-center gap-4 mb-6">
+    {/* Choose icon by section title keywords */}
+    <SectionIcon
+      name={
+        section.title.toLowerCase().includes("executive") ? "summary" :
+        section.title.toLowerCase().includes("habit") ? "analysis" :
+        section.title.toLowerCase().includes("roadmap") ? "roadmap" :
+        section.title.toLowerCase().includes("long-term") || section.title.toLowerCase().includes("long term") ? "longterm" :
+        section.title.toLowerCase().includes("strategic") ? "strategy" :
+        section.title.toLowerCase().includes("tools") || section.title.toLowerCase().includes("upsell") ? "tools" :
+        "summary"
+      }
+      className="w-10 h-10 text-green-600"
+    />
+    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">{section.title}</h2>
+  </div>
+)}
+
+
+
+
+                                      
+
+
+
+     
         {/* Optional summary */}
         {section?.summary && (
           <p className="text-lg text-gray-700 mb-6 leading-relaxed">
