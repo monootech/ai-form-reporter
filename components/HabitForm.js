@@ -134,9 +134,7 @@ export default function HabitForm({ contactId, email, firstName }) {
     {
   title: "About You (Optional, Highly Recommended)",
   question: "Tell us about yourself: your education, skills, professional experience, hobbies, and anything you’re proud of. What do you enjoy doing most, and what frustrates you?",
-<p className="text-gray-500 text-sm mb-2">
-  Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!
-</p>
+<p className="text-gray-500 text-sm mb-2">Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be! </p>,
   type: "text",
   field: "backgroundSkills",
   placeholder: "For example: 'I have 5 years in marketing, I enjoy creative problem-solving, I struggle with staying consistent…'"
@@ -146,7 +144,7 @@ export default function HabitForm({ contactId, email, firstName }) {
   question: "What are your biggest goals, ambitions, or dreams right now — personal, professional, or creative? What motivates you, and what usually holds you back?",
 <p className="text-gray-500 text-sm mb-2">
   Optional but highly recommended — the more details you share, the more personalized your habit blueprint will be!
-</p>
+</p>,
   type: "text",
   field: "goalsAmbitions",
   placeholder: "For example: 'I want to run my own business, stay fit, and become an expert in data analytics…'"
