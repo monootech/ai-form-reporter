@@ -392,10 +392,24 @@ const json = await res.json();        // res.json() will handle parsing safely.
 
 
 
+
+
+
+const HabitForm = ({ contactId, email, firstName }) => {
+  const router = useRouter();
+
+  // --- Toggle this for testing success screen ---
+  const [showTestSuccess, setShowTestSuccess] = useState(true); // <-- true = show test success screen, false, show real form.
+
+
+
+
+
+
   
 
 // --- Show success screen if report ready ---
-if (submitSuccess) {
+if (submitSuccess || showTestSuccess) {
   const formattedDate = new Date().toLocaleString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -444,9 +458,31 @@ if (submitSuccess) {
       >
         View My Blueprint
       </a>
+
+
+          
+      <div className="mt-6">
+        <button
+          className="text-sm text-gray-500 underline"
+          onClick={() => setShowTestSuccess(false)}
+        >
+          ← Go back to form
+        </button>
+      </div>
+
+
+            
+
+          
     </div>
   );
 }
+
+
+
+
+
+
 
 
 
