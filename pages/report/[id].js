@@ -248,7 +248,7 @@ useEffect(() => {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-green-700 mb-4">🎯 {properCase(firstName)}'s Personalized AI Habit Blueprint™ </h1>
+          <h1 className="text-4xl font-bold text-green-700 mb-4">🎯 {properCase(report?.firstName || "Guest")}'s Personalized AI Habit Blueprint™</h1>
           <p className="text-gray-600 text-lg">Generated on {dateText}</p>
         </div>
 
