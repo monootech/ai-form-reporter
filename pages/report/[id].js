@@ -455,6 +455,7 @@ useEffect(() => {
 
 
         {/* PDF download */}
+{/*  // commenting out the download PDF button, for now, as we don't have that functionality yet.
         <div className="flex justify-center mb-8">
           <button
             onClick={handleDownloadPDF}
@@ -463,7 +464,7 @@ useEffect(() => {
             📥 Download PDF Version
           </button>
         </div>
-
+*/}
       </div>
     </div>
   );
