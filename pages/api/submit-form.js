@@ -24,9 +24,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: "Server misconfiguration: Workflow 2 URL missing" });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 29_000); // 29 seconds
-
   try {
     const fetchRes = await fetch(workflow2Url, {
       method: "POST",
@@ -35,7 +32,7 @@ export default async function handler(req, res) {
         ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
       },
       body: JSON.stringify({ contactId, email, firstName, formData }),
-      signal: controller.signal,
+
     });
 
     clearTimeout(timeout);
@@ -43,27 +40,35 @@ export default async function handler(req, res) {
     
 
 // Reading the response
-let parsed = null;
-let text = "";
-
 try {
+  await fetch(workflow2Url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+    },
+    body: JSON.stringify({ contactId, email, firstName, formData }),
+  });
 
-  text = await fetchRes.text(); // read only once
-  console.log("Raw Workflow 2 text response:", text);
-
-  if (text.trim()) {
-    parsed = JSON.parse(text);
-  } else {
-    parsed = { message: "Workflow 2 completed but returned empty response" };
-  }
+  // ✅ Immediately return success (do NOT wait for workflow result)
+  return res.status(200).json({
+    success: true,
+    message: "Workflow triggered successfully"
+  });
 
 } catch (err) {
-  console.warn("Submit-form: Failed to parse Workflow 2 JSON, returning fallback", err);
-  parsed = { message: "Workflow 2 completed but returned unparseable JSON", raw: text };
+  console.error("Submit-form: Error triggering Workflow2:", err);
+
+  return res.status(500).json({
+    success: false,
+    error: "Failed to trigger Workflow 2.",
+    details: err.message,
+  });
 }
 
-// ✅ Return standardized Response envelope
-return res.status(200).json({ success: true, data: parsed });
+
+
+    
 
 
 
@@ -84,3 +89,8 @@ return res.status(200).json({ success: true, data: parsed });
     });
   }
 }
+
+
+
+
+
