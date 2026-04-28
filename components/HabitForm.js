@@ -357,15 +357,18 @@ const json = await res.json();        // res.json() will handle parsing safely.
         throw new Error(json?.error || `HTTP ${res.status}`);
       }
 
-      if (!json?.success || !json?.data?.reportUrl) {
-        throw new Error("Submission succeeded but report URL is missing");
-      }
 
-      // ✅ Successful submission → save report URL
-      setReportUrl(json.data.reportUrl);
-      setSubmitSuccess(true);
-      setSubmitError("");
+      
+if (!json?.success) {
+  throw new Error(json?.error || "Submission failed");
+}
 
+setSubmitSuccess(true);
+setSubmitError("");
+
+
+
+      
     } catch (err) {
       console.error("Form submission error:", err);
       setSubmitError(err.message || "Submission failed. Please try again.");
@@ -441,13 +444,28 @@ if (submitSuccess) {
       {/* Branding */}
       <p className="text-gray-400 text-sm mb-6">habitmasterysystem.com</p>
 
-      {/* View Report Button */}
-      <a
-        href={`/report/${contactId}`}
-        className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-      >
-        View My Blueprint
-      </a>          
+  
+      {/* changed from button to "being crafted"... notice */}
+<div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+  <p className="text-green-800 font-semibold mb-2">
+    📬 Your personalized Habit Blueprint is being crafted right now
+  </p>
+  <p className="text-green-700 text-sm">
+    You’ll receive an email shortly at <strong>{email}</strong>.
+    <br />
+    ⏱️ Please allow up to 1–2 minutes.
+  </p>
+
+  <p className="text-gray-400 text-sm mt-3">
+  If you don’t see it, check your Spam, Trash, Promotions, Social or Updates folders.
+</p>
+
+  
+</div>
+
+
+
+          
     </div>
   );
 }
