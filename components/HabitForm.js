@@ -334,7 +334,17 @@ case "text":
       });
 
 
-const json = await res.json();        // res.json() will handle parsing safely.
+let json = null;
+
+try {
+  const text = await res.text();
+  console.log("Submit response text:", text);
+
+  json = text ? JSON.parse(text) : null;
+} catch (err) {
+  console.error("Failed to parse response:", err);
+  throw new Error("Server returned invalid response");
+}
 
       
       
