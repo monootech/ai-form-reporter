@@ -1,3 +1,5 @@
+// GPT's 3rd revision, better UX implementation asked.
+
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,23 +9,20 @@ export default function ProcessingPage() {
   const { id: contactId } = router.query;
 
   const [submission, setSubmission] = useState(null);
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [statusMessage, setStatusMessage] = useState("Preparing your answers...");
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [processed, setProcessed] = useState([]);
+  const [statusMessage, setStatusMessage] = useState("Preparing...");
+  const [phase, setPhase] = useState("processing"); // processing | analysis | generating
   const [error, setError] = useState(null);
-  const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState("answers"); // "answers" | "analysis" | "done"
 
-  const pollIntervalRef = useRef(null);
-  const progressTimerRef = useRef(null);
+  const pollRef = useRef(null);
 
-  // Narrative-style messages
   const statusMessages = [
-    "Reviewing your responses...",
-    "Identifying behavior patterns...",
-    "Comparing with high-performing profiles...",
-    "Detecting improvement opportunities...",
-    "Designing your personalized system...",
-    "Finalizing your Habit Blueprint...",
+    "Analyzing response patterns...",
+    "Mapping behavioral tendencies...",
+    "Comparing against proven frameworks...",
+    "Extracting key insights...",
+    "Building your system design...",
   ];
 
   // Load submission
@@ -31,122 +30,85 @@ export default function ProcessingPage() {
     if (!contactId) return;
 
     const stored = sessionStorage.getItem("habitFormSubmission");
+
     if (!stored) {
-      setError("Submission data not found. Please try again.");
+      setError("Missing submission data.");
       return;
     }
 
-    try {
-      const data = JSON.parse(stored);
-      if (data.contactId !== contactId) {
-        setError("Invalid session. Please resubmit.");
-        return;
-      }
-      setSubmission(data);
-    } catch {
-      setError("Failed to load submission.");
+    const data = JSON.parse(stored);
+
+    if (data.contactId !== contactId) {
+      setError("Invalid session.");
+      return;
     }
+
+    setSubmission(data);
   }, [contactId]);
 
-  // Progress bar (time-based)
-  useEffect(() => {
-    const duration = 40000;
-    const interval = 100;
-
-    progressTimerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + (interval / duration) * 100;
-        return next >= 95 ? 95 : next;
-      });
-    }, interval);
-
-    return () => clearInterval(progressTimerRef.current);
-  }, []);
-
-  // Main orchestration
+  // Main orchestration (SLOW + HUMAN PACED)
   useEffect(() => {
     if (!submission) return;
 
-    const { steps } = submission;
+    const steps = submission.steps;
+    let i = 0;
 
-    // Animate answers with natural pacing
-    let i = -1;
-
-    const playAnswers = () => {
-      i++;
-
-      if (i < steps.length) {
-        setCurrentStepIndex(i);
-
-        const delay =
-          i % 5 === 0 && i !== 0
-            ? 1400 // thinking pause
-            : 500 + Math.random() * 400;
-
-        setTimeout(playAnswers, delay);
-      } else {
+    const runStep = async () => {
+      if (i >= steps.length) {
         setPhase("analysis");
-        rotateMessages();
+        return;
       }
+
+      const step = steps[i];
+
+      setCurrentIndex(i);
+
+      // show status message rotation
+      setStatusMessage(statusMessages[i % statusMessages.length]);
+
+      // simulate processing time (IMPORTANT UX FIX)
+      const delay = 1400 + Math.random() * 800;
+      await new Promise((r) => setTimeout(r, delay));
+
+      setProcessed((prev) => [
+        {
+          question: step.question,
+          answer: submission.formData[step.field] || "(Not answered)",
+        },
+        ...prev, // newest goes on top (your requested ordering)
+      ]);
+
+      i++;
+      runStep();
     };
 
-    playAnswers();
-
-    // Rotate messages during analysis
-    let msgIndex = 0;
-    const rotateMessages = () => {
-      const interval = setInterval(() => {
-        msgIndex = (msgIndex + 1) % statusMessages.length;
-        setStatusMessage(statusMessages[msgIndex]);
-      }, 3500);
-
-      return interval;
-    };
+    runStep();
 
     // Poll backend
-    const poll = async () => {
+    pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/get-report?id=${contactId}`);
 
         if (res.status === 200) {
-          clearInterval(pollIntervalRef.current);
-          clearInterval(progressTimerRef.current);
+          clearInterval(pollRef.current);
 
-          setProgress(100);
-          setPhase("done");
-          setStatusMessage("Done! Preparing your results...");
+          setPhase("generating");
 
           setTimeout(() => {
             router.push(`/report/${contactId}`);
-          }, 1200);
+          }, 1500);
         }
-      } catch (err) {
-        console.warn(err);
-      }
-    };
+      } catch {}
+    }, 2000);
 
-    pollIntervalRef.current = setInterval(poll, 2000);
+    return () => clearInterval(pollRef.current);
+  }, [submission]);
 
-    return () => {
-      clearInterval(pollIntervalRef.current);
-      clearInterval(progressTimerRef.current);
-    };
-  }, [submission, contactId, router]);
-
-  const getAnswerText = (step, formData) => {
-    const value = formData[step.field];
-    if (!value) return "(Not answered)";
-    if (Array.isArray(value)) return value.join(", ");
-    return value;
+  const getAnswer = (step, formData) => {
+    const val = formData[step.field];
+    if (!val) return "(Not answered)";
+    return Array.isArray(val) ? val.join(", ") : val;
   };
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>{error}</p>
-      </div>
-    );
-  }
 
   if (!submission) {
     return (
@@ -156,141 +118,99 @@ export default function ProcessingPage() {
     );
   }
 
-  const { steps, formData } = submission;
-  const visibleSteps = steps.slice(0, currentStepIndex + 1);
+  const currentStep = submission.steps[currentIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-green-50 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-green-50 px-4 py-8">
+      <div className="max-w-2xl mx-auto space-y-6">
 
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-green-700">
+        {/* HEADER */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-green-700">
             Building Your Blueprint
           </h1>
-          <p className="text-sm text-gray-500 mt-2">
-            This usually takes ~30 seconds. We’re analyzing your responses to generate a personalized plan.
+          <p className="text-sm text-gray-500 mt-1">
+            This takes ~30 seconds while we generate your personalized system.
           </p>
         </div>
 
-        {/* Progress bar */}
-        <div className="mb-6">
-          <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-green-600 h-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className="text-xs text-gray-500 mt-1 text-right">
-            {Math.round(progress)}%
-          </p>
-        </div>
-
-        {/* Status */}
-        <motion.div
-          key={statusMessage}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow p-4 mb-6 text-center"
-        >
-          {statusMessage}
-        </motion.div>
-
-
-
-
-
-{/* Answer replay (IMPROVED UX - focus-based flow) */}
-<div className="bg-white rounded-xl shadow-lg overflow-hidden relative">
-
-  <div className="bg-green-50 px-4 py-3 border-b">
-    <h2 className="font-semibold text-green-800">
-      Processing your responses
-    </h2>
-  </div>
-
-  {/* CENTER FOCUS AREA */}
-  <div className="p-6 min-h-[260px] flex flex-col justify-center">
-
-    {/* CURRENT ACTIVE STEP */}
-    <AnimatePresence mode="wait">
-      {visibleSteps.length > 0 && (
-        <motion.div
-          key={currentStepIndex}
-          initial={{ opacity: 0, y: 20, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6"
-        >
-          <p className="text-sm text-gray-400 mb-1">
-            Now processing
-          </p>
-
-          <p className="font-medium text-gray-800 text-lg">
-            {visibleSteps[currentStepIndex]?.question}
-          </p>
-
-          <p className="text-green-700 mt-2 font-medium">
-            {getAnswerText(
-              visibleSteps[currentStepIndex],
-              formData
-            )}
-          </p>
-        </motion.div>
-      )}
-    </AnimatePresence>
-
-    {/* STACKED PREVIOUS ANSWERS (NO SCROLL) */}
-    <div className="space-y-2 mt-4">
-      {visibleSteps
-        .slice(Math.max(0, currentStepIndex - 2), currentStepIndex)
-        .reverse()
-        .map((step, idx) => (
+        {/* PHASE 1: PROCESSING CARD */}
+        {phase === "processing" && currentStep && (
           <motion.div
-            key={idx}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            className="text-sm text-gray-500 flex justify-between"
+            key="active"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl shadow-lg p-6"
           >
-            <span className="truncate max-w-[70%]">
-              {step.question}
-            </span>
-            <span className="text-gray-400 ml-3">
-              ✓
-            </span>
+            <p className="text-xs text-gray-400 mb-2">
+              Now processing
+            </p>
+
+            <h2 className="text-lg font-semibold text-gray-800">
+              {currentStep.question}
+            </h2>
+
+            <p className="text-green-700 mt-3 font-medium">
+              {getAnswer(currentStep, submission.formData)}
+            </p>
           </motion.div>
-        ))}
-    </div>
-  </div>
+        )}
 
-  {/* FOOTER STATUS */}
-  <div className="border-t px-4 py-3 bg-gray-50 text-center text-sm text-gray-600">
-    {phase === "answers" && "Analyzing responses..."}
-    {phase === "analysis" && statusMessage}
-    {phase === "done" && "Finalizing your report..."}
-  </div>
-</div>
+        {/* ANALYSIS STATUS */}
+        {phase === "analysis" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white rounded-xl shadow p-4 text-center"
+          >
+            <p className="text-gray-700 font-medium">
+              {statusMessage}
+            </p>
 
+            <div className="mt-3 flex justify-center">
+              <div className="h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          </motion.div>
+        )}
 
-
-
-
-
-        {/* Phase 2 */}
-        {phase !== "answers" && (
-          <div className="text-center mt-6">
-            <div className="animate-spin h-5 w-5 border-b-2 border-green-600 rounded-full mx-auto mb-2" />
-            <p className="text-sm text-gray-600">
+        {/* GENERATING STATE */}
+        {phase === "generating" && (
+          <div className="bg-white rounded-xl shadow p-6 text-center">
+            <div className="h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-gray-700 font-medium">
               Generating your personalized plan...
             </p>
           </div>
         )}
 
-        {/* Reassurance */}
-        <p className="text-xs text-gray-400 text-center mt-6">
-          You can safely leave this page — your report will still be generated.
-        </p>
+        {/* PROCESSED RESPONSES (SECONDARY PANEL) */}
+        <div className="bg-white rounded-xl shadow overflow-hidden">
+          <div className="px-4 py-3 border-b bg-gray-50">
+            <h3 className="font-semibold text-gray-700">
+              Processed responses
+            </h3>
+          </div>
+
+          <div className="max-h-72 overflow-y-auto p-4 space-y-4">
+            {processed.map((item, idx) => (
+              <div key={idx} className="border-b pb-3 last:border-none">
+                <p className="font-semibold text-gray-800">
+                  {item.question}
+                </p>
+                <p className="text-gray-600 text-sm mt-1">
+                  {item.answer}
+                </p>
+              </div>
+            ))}
+
+            {processed.length === 0 && (
+              <p className="text-sm text-gray-400 italic">
+                Waiting for responses...
+              </p>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
