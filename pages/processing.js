@@ -1,4 +1,4 @@
-// GPT's 3rd revision, better UX implementation asked.
+// GPT's 3rd revision, better UX implementation asked and to put back the progress bar.
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
@@ -11,18 +11,22 @@ export default function ProcessingPage() {
   const [submission, setSubmission] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [processed, setProcessed] = useState([]);
-  const [statusMessage, setStatusMessage] = useState("Preparing...");
+  const [statusMessage, setStatusMessage] = useState("Preparing your Blueprint...");
   const [phase, setPhase] = useState("processing"); // processing | analysis | generating
+  const [progress, setProgress] = useState(0);
+  const [showLeaveNote, setShowLeaveNote] = useState(false);
+  const [showDelayNotice, setShowDelayNotice] = useState(false);
   const [error, setError] = useState(null);
 
   const pollRef = useRef(null);
+  const progressRef = useRef(null);
 
   const statusMessages = [
-    "Analyzing response patterns...",
-    "Mapping behavioral tendencies...",
-    "Comparing against proven frameworks...",
-    "Extracting key insights...",
-    "Building your system design...",
+    "Reviewing your responses...",
+    "Identifying behavioral patterns...",
+    "Mapping success signals...",
+    "Detecting improvement opportunities...",
+    "Designing your personalized Blueprint...",
   ];
 
   // Load submission
@@ -46,28 +50,58 @@ export default function ProcessingPage() {
     setSubmission(data);
   }, [contactId]);
 
-  // Main orchestration (SLOW + HUMAN PACED)
+  // progress bar (time-based, capped at 95%)
+  useEffect(() => {
+    const duration = 40000;
+    const interval = 100;
+
+    progressRef.current = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + (interval / duration) * 100;
+        return next >= 95 ? 95 : next;
+      });
+    }, interval);
+
+    return () => clearInterval(progressRef.current);
+  }, []);
+
+  // show "you can leave" after 5 seconds
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setShowLeaveNote(true);
+    }, 5000);
+
+    return () => clearTimeout(t);
+  }, []);
+
+  // show delay message after 30 seconds
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setShowDelayNotice(true);
+    }, 30000);
+
+    return () => clearTimeout(t);
+  }, []);
+
+  // main orchestration
   useEffect(() => {
     if (!submission) return;
 
     const steps = submission.steps;
     let i = 0;
 
-    const runStep = async () => {
+    const run = async () => {
       if (i >= steps.length) {
         setPhase("analysis");
         return;
       }
 
       const step = steps[i];
-
       setCurrentIndex(i);
 
-      // show status message rotation
       setStatusMessage(statusMessages[i % statusMessages.length]);
 
-      // simulate processing time (IMPORTANT UX FIX)
-      const delay = 1400 + Math.random() * 800;
+      const delay = 1500 + Math.random() * 700;
       await new Promise((r) => setTimeout(r, delay));
 
       setProcessed((prev) => [
@@ -75,23 +109,25 @@ export default function ProcessingPage() {
           question: step.question,
           answer: submission.formData[step.field] || "(Not answered)",
         },
-        ...prev, // newest goes on top (your requested ordering)
+        ...prev,
       ]);
 
       i++;
-      runStep();
+      run();
     };
 
-    runStep();
+    run();
 
-    // Poll backend
+    // polling
     pollRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/get-report?id=${contactId}`);
 
         if (res.status === 200) {
           clearInterval(pollRef.current);
+          clearInterval(progressRef.current);
 
+          setProgress(100);
           setPhase("generating");
 
           setTimeout(() => {
@@ -118,7 +154,8 @@ export default function ProcessingPage() {
     );
   }
 
-  const currentStep = submission.steps[currentIndex];
+  const steps = submission.steps;
+  const currentStep = steps[currentIndex];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-green-50 px-4 py-8">
@@ -127,14 +164,34 @@ export default function ProcessingPage() {
         {/* HEADER */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-green-700">
-            Building Your Blueprint
+            Building Your Personalized Blueprint
           </h1>
+
           <p className="text-sm text-gray-500 mt-1">
-            This takes ~30 seconds while we generate your personalized system.
+            This takes ~30 seconds while we design your system based on your responses.
+          </p>
+
+          {showLeaveNote && (
+            <p className="text-xs text-gray-400 mt-2">
+              You can safely leave this page — your report will still be generated and sent to your email.
+            </p>
+          )}
+        </div>
+
+        {/* PROGRESS */}
+        <div>
+          <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+            <div
+              className="bg-green-600 h-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-1 text-right">
+            {Math.round(progress)}%
           </p>
         </div>
 
-        {/* PHASE 1: PROCESSING CARD */}
+        {/* ACTIVE CARD */}
         {phase === "processing" && currentStep && (
           <motion.div
             key="active"
@@ -153,37 +210,41 @@ export default function ProcessingPage() {
             <p className="text-green-700 mt-3 font-medium">
               {getAnswer(currentStep, submission.formData)}
             </p>
+
+            <p className="text-xs text-gray-400 mt-4 animate-pulse">
+              Processing…
+            </p>
           </motion.div>
         )}
 
-        {/* ANALYSIS STATUS */}
+        {/* ANALYSIS */}
         {phase === "analysis" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white rounded-xl shadow p-4 text-center"
-          >
+          <div className="bg-white rounded-xl shadow p-5 text-center">
+            <div className="h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-700 font-medium">
               {statusMessage}
-            </p>
-
-            <div className="mt-3 flex justify-center">
-              <div className="h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-          </motion.div>
-        )}
-
-        {/* GENERATING STATE */}
-        {phase === "generating" && (
-          <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-gray-700 font-medium">
-              Generating your personalized plan...
             </p>
           </div>
         )}
 
-        {/* PROCESSED RESPONSES (SECONDARY PANEL) */}
+        {/* GENERATING */}
+        {phase === "generating" && (
+          <div className="bg-white rounded-xl shadow p-6 text-center">
+            <div className="h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+
+            <p className="font-semibold text-gray-800">
+              Generating your personalized Blueprint...
+            </p>
+
+            {showDelayNotice && (
+              <p className="text-sm text-gray-500 mt-3">
+                Your report is taking longer than expected. It will be sent to your email once ready (in about 1–2 minutes) – no need to stay on this page.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* PROCESSED RESPONSES */}
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <div className="px-4 py-3 border-b bg-gray-50">
             <h3 className="font-semibold text-gray-700">
@@ -194,10 +255,11 @@ export default function ProcessingPage() {
           <div className="max-h-72 overflow-y-auto p-4 space-y-4">
             {processed.map((item, idx) => (
               <div key={idx} className="border-b pb-3 last:border-none">
-                <p className="font-semibold text-gray-800">
+                <p className="font-semibold text-gray-800 flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
                   {item.question}
                 </p>
-                <p className="text-gray-600 text-sm mt-1">
+                <p className="text-gray-600 text-sm mt-1 pl-5">
                   {item.answer}
                 </p>
               </div>
