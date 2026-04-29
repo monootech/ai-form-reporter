@@ -20,8 +20,8 @@ export default function SuccessPage() {
 
     if (stored) {
       const data = JSON.parse(stored);
-      setFirstName(data.formData?.firstName || "");
-      setEmail(data.formData?.email || "");
+      setFirstName(data.firstName || "");     
+      setEmail(data.email || "");
     }
 
     // stop confetti after 5s
