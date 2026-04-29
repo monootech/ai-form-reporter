@@ -34,14 +34,20 @@ export default function ProcessingPage() {
   ];
 
   // FINAL SEQUENTIAL MESSAGES
-  const finalMessages = [
-    "Reviewing your responses...",
-    "Identifying behavior patterns...",
-    "Comparing with high-performing profiles...",
-    "Detecting improvement opportunities...",
-    "Designing your personalized system...",
-    "Finalizing your Habit Blueprint...",
-  ];
+const finalMessages = [
+  "Reviewing your responses...",
+  "Organizing your input data...",
+  "Identifying behavior patterns...",
+  "Mapping your current habits...",
+  "Analyzing strengths and bottlenecks...",
+  "Comparing with high-performing profiles...",
+  "Detecting improvement opportunities...",
+  "Prioritizing high-impact changes...",
+  "Designing your personalized system...",
+  "Structuring your habit framework...",
+  "Optimizing for consistency and results...",
+  "Finalizing your Habit Blueprint..."
+];
 
   const [finalIndex, setFinalIndex] = useState(0);
 
