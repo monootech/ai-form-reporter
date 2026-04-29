@@ -1,4 +1,4 @@
-// GPT's 4th revision, asked to add final sentences bellow the "designing your report"
+// GPT's 5th revision, stopped looking for final messages and made progress bar 30 seconds. 
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
@@ -20,7 +20,7 @@ export default function ProcessingPage() {
 
   const pollRef = useRef(null);
   const progressRef = useRef(null);
-  const rotatingRef = useRef(null);
+  const sequenceRef = useRef(null);
 
   const statusMessages = [
     "Reviewing your responses...",
@@ -30,7 +30,7 @@ export default function ProcessingPage() {
     "Designing your personalized Blueprint...",
   ];
 
-  // NEW rotating final-stage messages
+  // FINAL SEQUENTIAL MESSAGES
   const finalMessages = [
     "Reviewing your responses...",
     "Identifying behavior patterns...",
@@ -63,9 +63,9 @@ export default function ProcessingPage() {
     setSubmission(data);
   }, [contactId]);
 
-  // progress bar
+  // PROGRESS BAR (30s now)
   useEffect(() => {
-    const duration = 40000;
+    const duration = 30000;
     const interval = 100;
 
     progressRef.current = setInterval(() => {
@@ -96,22 +96,28 @@ export default function ProcessingPage() {
     return () => clearTimeout(t);
   }, []);
 
-  // NEW: rotating final messages (analysis + generating phase)
+  // FINAL MESSAGE SEQUENCE (2–3s each, no loop)
   useEffect(() => {
     if (phase !== "analysis" && phase !== "generating") return;
 
-    const runRotation = () => {
-      const delay = 1000 + Math.random() * 1000; // 1–2s
+    let i = 0;
 
-      rotatingRef.current = setTimeout(() => {
-        setFinalIndex((prev) => (prev + 1) % finalMessages.length);
-        runRotation();
+    const runSequence = () => {
+      if (i >= finalMessages.length - 1) return;
+
+      const delay = 2000 + Math.random() * 1000; // 2–3s
+
+      sequenceRef.current = setTimeout(() => {
+        i++;
+        setFinalIndex(i);
+        runSequence();
       }, delay);
     };
 
-    runRotation();
+    setFinalIndex(0);
+    runSequence();
 
-    return () => clearTimeout(rotatingRef.current);
+    return () => clearTimeout(sequenceRef.current);
   }, [phase]);
 
   // main orchestration
@@ -202,13 +208,6 @@ export default function ProcessingPage() {
             This takes ~30 seconds while we design your system based on your responses.
           </p>
 
-          {/* NEW rotating message display */}
-          {(phase === "analysis" || phase === "generating") && (
-            <p className="text-sm text-green-700 mt-3 font-medium transition-opacity duration-300">
-              {finalMessages[finalIndex]}
-            </p>
-          )}
-
           {showLeaveNote && (
             <p className="text-xs text-gray-400 mt-2">
               You can safely leave this page — your report will still be generated and sent to your email.
@@ -259,8 +258,14 @@ export default function ProcessingPage() {
         {phase === "analysis" && (
           <div className="bg-white rounded-xl shadow p-5 text-center">
             <div className="h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+
             <p className="text-gray-700 font-medium">
-              {statusMessage}
+              Designing your personalized Blueprint...
+            </p>
+
+            {/* FINAL MESSAGE UNDER IT */}
+            <p className="text-sm text-green-700 mt-2 font-medium transition-opacity duration-300">
+              {finalMessages[finalIndex]}
             </p>
           </div>
         )}
@@ -272,6 +277,11 @@ export default function ProcessingPage() {
 
             <p className="font-semibold text-gray-800">
               Generating your personalized Blueprint...
+            </p>
+
+            {/* CONTINUE SHOWING FINAL MESSAGE */}
+            <p className="text-sm text-green-700 mt-2 font-medium">
+              {finalMessages[finalIndex]}
             </p>
 
             {showDelayNotice && (
