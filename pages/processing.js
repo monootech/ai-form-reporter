@@ -1,8 +1,8 @@
-// GPT's 3rd revision, better UX implementation asked and to put back the progress bar.
+// GPT's 4th revision, asked to add final sentences bellow the "designing your report"
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function ProcessingPage() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function ProcessingPage() {
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [processed, setProcessed] = useState([]);
   const [statusMessage, setStatusMessage] = useState("Preparing your Blueprint...");
-  const [phase, setPhase] = useState("processing"); // processing | analysis | generating
+  const [phase, setPhase] = useState("processing");
   const [progress, setProgress] = useState(0);
   const [showLeaveNote, setShowLeaveNote] = useState(false);
   const [showDelayNotice, setShowDelayNotice] = useState(false);
@@ -20,6 +20,7 @@ export default function ProcessingPage() {
 
   const pollRef = useRef(null);
   const progressRef = useRef(null);
+  const rotatingRef = useRef(null);
 
   const statusMessages = [
     "Reviewing your responses...",
@@ -28,6 +29,18 @@ export default function ProcessingPage() {
     "Detecting improvement opportunities...",
     "Designing your personalized Blueprint...",
   ];
+
+  // NEW rotating final-stage messages
+  const finalMessages = [
+    "Reviewing your responses...",
+    "Identifying behavior patterns...",
+    "Comparing with high-performing profiles...",
+    "Detecting improvement opportunities...",
+    "Designing your personalized system...",
+    "Finalizing your Habit Blueprint...",
+  ];
+
+  const [finalIndex, setFinalIndex] = useState(0);
 
   // Load submission
   useEffect(() => {
@@ -50,7 +63,7 @@ export default function ProcessingPage() {
     setSubmission(data);
   }, [contactId]);
 
-  // progress bar (time-based, capped at 95%)
+  // progress bar
   useEffect(() => {
     const duration = 40000;
     const interval = 100;
@@ -65,7 +78,7 @@ export default function ProcessingPage() {
     return () => clearInterval(progressRef.current);
   }, []);
 
-  // show "you can leave" after 5 seconds
+  // leave note
   useEffect(() => {
     const t = setTimeout(() => {
       setShowLeaveNote(true);
@@ -74,7 +87,7 @@ export default function ProcessingPage() {
     return () => clearTimeout(t);
   }, []);
 
-  // show delay message after 30 seconds
+  // delay notice
   useEffect(() => {
     const t = setTimeout(() => {
       setShowDelayNotice(true);
@@ -82,6 +95,24 @@ export default function ProcessingPage() {
 
     return () => clearTimeout(t);
   }, []);
+
+  // NEW: rotating final messages (analysis + generating phase)
+  useEffect(() => {
+    if (phase !== "analysis" && phase !== "generating") return;
+
+    const runRotation = () => {
+      const delay = 1000 + Math.random() * 1000; // 1–2s
+
+      rotatingRef.current = setTimeout(() => {
+        setFinalIndex((prev) => (prev + 1) % finalMessages.length);
+        runRotation();
+      }, delay);
+    };
+
+    runRotation();
+
+    return () => clearTimeout(rotatingRef.current);
+  }, [phase]);
 
   // main orchestration
   useEffect(() => {
@@ -170,6 +201,13 @@ export default function ProcessingPage() {
           <p className="text-sm text-gray-500 mt-1">
             This takes ~30 seconds while we design your system based on your responses.
           </p>
+
+          {/* NEW rotating message display */}
+          {(phase === "analysis" || phase === "generating") && (
+            <p className="text-sm text-green-700 mt-3 font-medium transition-opacity duration-300">
+              {finalMessages[finalIndex]}
+            </p>
+          )}
 
           {showLeaveNote && (
             <p className="text-xs text-gray-400 mt-2">
