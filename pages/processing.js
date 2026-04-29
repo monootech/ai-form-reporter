@@ -1,4 +1,4 @@
-// GPT's 5th revision, stopped looking for final messages and made progress bar 30 seconds. 
+// GPT's 6th revision, changed the route to go to success page. from router.push(`/report/${contactId}`);    to   router.push(`/success/${contactId}`);
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
@@ -168,7 +168,7 @@ export default function ProcessingPage() {
           setPhase("generating");
 
           setTimeout(() => {
-            router.push(`/report/${contactId}`);
+            router.push(`/success/${contactId}`);
           }, 1500);
         }
       } catch {}
