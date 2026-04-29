@@ -1,4 +1,4 @@
-// first edition of success page, now from processing page the client is redirected to here, not to the report page
+// 2nd edition of success page, improved copy and removed the buttonn for now, instead telling them to check their emails.
 
 
 import { useRouter } from "next/router";
@@ -14,7 +14,7 @@ export default function SuccessPage() {
   const [email, setEmail] = useState("");
   const [showConfetti, setShowConfetti] = useState(true);
 
-  // Load user data from sessionStorage
+  // Load user data
   useEffect(() => {
     const stored = sessionStorage.getItem("habitFormSubmission");
 
@@ -24,28 +24,22 @@ export default function SuccessPage() {
       setEmail(data.formData?.email || "");
     }
 
-    // stop confetti after 5s (performance + polish)
+    // stop confetti after 5s
     const t = setTimeout(() => setShowConfetti(false), 5000);
     return () => clearTimeout(t);
   }, []);
 
-  const formattedDate = new Date().toLocaleString("en-US", {
+  // Date (uses user's browser locale automatically)
+  const formattedDate = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
   });
 
   const properCase = (name) => {
     if (!name) return "";
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  };
-
-  const goToReport = () => {
-    router.push(`/report/${contactId}`);
   };
 
   return (
@@ -78,38 +72,62 @@ export default function SuccessPage() {
 
       <div className="h-px bg-gray-300 my-8 w-24 mx-auto"></div>
 
-      {/* Email */}
+      {/* Email Confirmation */}
       {email && (
         <p className="text-gray-600 text-center mb-6">
-          📧 Your full report has been sent to <strong>{email}</strong>
+          📧 Your full Habit Blueprint has been sent to <strong>{email}</strong>
         </p>
       )}
 
-      {/* Value block */}
+      {/* Emotional payoff / value */}
       <motion.p
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="text-lg text-gray-800 text-center max-w-lg mb-8"
+        className="text-lg text-gray-800 text-center max-w-lg mb-10"
       >
-        This isn’t generic advice — it’s a structured blueprint designed to help you build better habits, eliminate friction, and move toward your goals with clarity.
+        This isn’t just another report — it’s a structured plan designed specifically for you to break patterns, build momentum, and move toward the version of yourself you’ve been aiming for.
       </motion.p>
 
-      {/* CTA */}
-      <motion.button
-        onClick={goToReport}
-        initial={{ opacity: 0, y: 20 }}
+      {/* NEXT STEPS BLOCK */}
+      <motion.div
+        initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition"
+        className="bg-white/80 backdrop-blur-md p-6 rounded-xl shadow-lg max-w-lg text-center"
       >
-        View My Full Blueprint →
-      </motion.button>
+        <h2 className="text-2xl font-semibold text-green-800 mb-4">
+          🚀 Your Next Steps
+        </h2>
 
-      {/* Secondary note */}
-      <p className="text-sm text-gray-500 mt-6 text-center max-w-md">
-        You can also access your report anytime from your email.
-      </p>
+        <p className="text-gray-700 mb-4">
+          Keep an eye on your inbox — your personalized Habit Blueprint is on its way.
+        </p>
+
+        <p className="text-gray-700 mb-4">
+          📧 We’ve sent it to <strong>{email}</strong>
+        </p>
+
+        <p className="text-gray-700 mb-4">
+          Inside, you’ll discover the key patterns shaping your behavior, along with clear steps to help you improve faster and more effectively.
+        </p>
+
+        <p className="text-gray-600">
+          You’ve already taken the hardest step — starting.
+          <br />
+          Now it’s time to build momentum.
+        </p>
+      </motion.div>
+
+      {/* Subtle anticipation builder */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        className="text-sm text-gray-500 mt-8 text-center max-w-md"
+      >
+        (Tip: If you don’t see the email within a minute, check your Spam, Trash, Promotions, Social or Updates folder and add support@habitmasterysystem.com to your contacts.)
+      </motion.p>
 
     </div>
   );
