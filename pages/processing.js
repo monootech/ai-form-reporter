@@ -65,7 +65,7 @@ export default function ProcessingPage() {
 
   // PROGRESS BAR (30s now)
   useEffect(() => {
-    const duration = 30000;
+    const duration = 20000;
     const interval = 100;
 
     progressRef.current = setInterval(() => {
@@ -91,7 +91,7 @@ export default function ProcessingPage() {
   useEffect(() => {
     const t = setTimeout(() => {
       setShowDelayNotice(true);
-    }, 30000);
+    }, 15000);
 
     return () => clearTimeout(t);
   }, []);
@@ -105,7 +105,7 @@ export default function ProcessingPage() {
     const runSequence = () => {
       if (i >= finalMessages.length - 1) return;
 
-      const delay = 2000 + Math.random() * 1000; // 2–3s
+      const delay = 1100 + Math.random() * 1000; // 2–3s
 
       sequenceRef.current = setTimeout(() => {
         i++;
@@ -138,7 +138,7 @@ export default function ProcessingPage() {
 
       setStatusMessage(statusMessages[i % statusMessages.length]);
 
-      const delay = 1500 + Math.random() * 700;
+      const delay = 600 + Math.random() * 400;
       await new Promise((r) => setTimeout(r, delay));
 
       setProcessed((prev) => [
@@ -160,17 +160,30 @@ export default function ProcessingPage() {
       try {
         const res = await fetch(`/api/get-report?id=${contactId}`);
 
-        if (res.status === 200) {
-          clearInterval(pollRef.current);
-          clearInterval(progressRef.current);
+   
+        
+        
+if (res.status === 200) {
+  const elapsed = Date.now() - startTimeRef.current;
 
-          setProgress(100);
-          setPhase("generating");
+  if (elapsed < MIN_PROCESSING_TIME) {
+    return; // ⛔ wait until minimum time passes
+  }
 
-          setTimeout(() => {
-            router.push(`/success/${contactId}`);
-          }, 1500);
-        }
+  clearInterval(pollRef.current);
+  clearInterval(progressRef.current);
+
+  setProgress(100);
+  setPhase("generating");
+
+  setTimeout(() => {
+    router.push(`/success/${contactId}`);
+  }, 1500);
+}
+
+
+
+        
       } catch {}
     }, 2000);
 
