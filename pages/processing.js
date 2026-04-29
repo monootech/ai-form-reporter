@@ -1,4 +1,4 @@
-// GPT's 6th revision, changed the route to go to success page. from router.push(`/report/${contactId}`);    to   router.push(`/success/${contactId}`);
+// GPT's 7th revision, wasn't redirecting to success page at all. fixed that.
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
@@ -21,6 +21,9 @@ export default function ProcessingPage() {
   const pollRef = useRef(null);
   const progressRef = useRef(null);
   const sequenceRef = useRef(null);
+  
+  const startTimeRef = useRef(Date.now());
+  const MIN_PROCESSING_TIME = 15000; // 15 seconds minimum
 
   const statusMessages = [
     "Reviewing your responses...",
@@ -105,7 +108,7 @@ export default function ProcessingPage() {
     const runSequence = () => {
       if (i >= finalMessages.length - 1) return;
 
-      const delay = 1100 + Math.random() * 1000; // 2–3s
+      const delay = 1400 + Math.random() * 600; // ~1.4–2s (feels faster but still natural)
 
       sequenceRef.current = setTimeout(() => {
         i++;
@@ -166,19 +169,27 @@ export default function ProcessingPage() {
 if (res.status === 200) {
   const elapsed = Date.now() - startTimeRef.current;
 
-  if (elapsed < MIN_PROCESSING_TIME) {
+// fallback: force continue after 20s no matter what
+const FORCE_TIMEOUT = 20000;
+
+
+if (elapsed < MIN_PROCESSING_TIME && elapsed < FORCE_TIMEOUT) {
     return; // ⛔ wait until minimum time passes
   }
 
   clearInterval(pollRef.current);
   clearInterval(progressRef.current);
 
-  setProgress(100);
-  setPhase("generating");
+ setPhase("generating");
 
-  setTimeout(() => {
-    router.push(`/success/${contactId}`);
-  }, 1500);
+// smooth finish from 95 → 100
+setProgress(100);
+
+setTimeout(() => {
+  router.push(`/success/${contactId}`);
+}, 1200);
+
+  
 }
 
 
