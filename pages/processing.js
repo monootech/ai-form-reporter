@@ -196,46 +196,86 @@ export default function ProcessingPage() {
           {statusMessage}
         </motion.div>
 
-        {/* Answer replay */}
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <div className="bg-green-50 px-4 py-3 border-b">
-            <h2 className="font-semibold text-green-800">Your responses</h2>
-          </div>
 
-          <ul>
-            <AnimatePresence>
-              {visibleSteps.map((step, idx) => (
-                <motion.li
-                  key={idx}
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="px-4 py-3 border-b flex gap-3"
-                >
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="text-green-600 font-bold"
-                  >
-                    ✓
-                  </motion.div>
 
-                  <div>
-                    <p className="font-medium">{step.question}</p>
-                    <p className="text-gray-600 text-sm">
-                      {getAnswerText(step, formData)}
-                    </p>
-                  </div>
-                </motion.li>
-              ))}
-            </AnimatePresence>
 
-            {phase === "answers" && (
-              <li className="p-4 text-gray-400 italic">
-                Analyzing next response...
-              </li>
+
+{/* Answer replay (IMPROVED UX - focus-based flow) */}
+<div className="bg-white rounded-xl shadow-lg overflow-hidden relative">
+
+  <div className="bg-green-50 px-4 py-3 border-b">
+    <h2 className="font-semibold text-green-800">
+      Processing your responses
+    </h2>
+  </div>
+
+  {/* CENTER FOCUS AREA */}
+  <div className="p-6 min-h-[260px] flex flex-col justify-center">
+
+    {/* CURRENT ACTIVE STEP */}
+    <AnimatePresence mode="wait">
+      {visibleSteps.length > 0 && (
+        <motion.div
+          key={currentStepIndex}
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6"
+        >
+          <p className="text-sm text-gray-400 mb-1">
+            Now processing
+          </p>
+
+          <p className="font-medium text-gray-800 text-lg">
+            {visibleSteps[currentStepIndex]?.question}
+          </p>
+
+          <p className="text-green-700 mt-2 font-medium">
+            {getAnswerText(
+              visibleSteps[currentStepIndex],
+              formData
             )}
-          </ul>
-        </div>
+          </p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* STACKED PREVIOUS ANSWERS (NO SCROLL) */}
+    <div className="space-y-2 mt-4">
+      {visibleSteps
+        .slice(Math.max(0, currentStepIndex - 2), currentStepIndex)
+        .reverse()
+        .map((step, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            className="text-sm text-gray-500 flex justify-between"
+          >
+            <span className="truncate max-w-[70%]">
+              {step.question}
+            </span>
+            <span className="text-gray-400 ml-3">
+              ✓
+            </span>
+          </motion.div>
+        ))}
+    </div>
+  </div>
+
+  {/* FOOTER STATUS */}
+  <div className="border-t px-4 py-3 bg-gray-50 text-center text-sm text-gray-600">
+    {phase === "answers" && "Analyzing responses..."}
+    {phase === "analysis" && statusMessage}
+    {phase === "done" && "Finalizing your report..."}
+  </div>
+</div>
+
+
+
+
+
 
         {/* Phase 2 */}
         {phase !== "answers" && (
