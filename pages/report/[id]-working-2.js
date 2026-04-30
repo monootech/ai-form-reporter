@@ -1,3 +1,4 @@
+// the page works well, but only breaks if the "track clicks" is turned on in GHL which causes weird URLs. 
 // pages/report/[id].js - Dynamic Report Page (Updated)
 
 // pages/report/[id].js
