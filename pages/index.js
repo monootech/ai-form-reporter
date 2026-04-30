@@ -35,7 +35,12 @@ const getCache = (key) => {
 
 export default function Home() {
   const router = useRouter();
-  const { email, contactId } = router.query;
+  const { email } = router.query;
+
+  // --- FIX: Normalize contactId to accept both possible parameter names ---
+  // GHL’s “Track Clicks” rewrites ?contactId=… to ?contact_id=…
+  const rawContactId = router.query.contactId || router.query.contact_id;
+  const contactId = rawContactId || undefined;
 
   const [validClient, setValidClient] = useState(null); // null = checking, true/false = result
   const [validationError, setValidationError] = useState("");
@@ -46,6 +51,7 @@ export default function Home() {
   useEffect(() => {
     if (!router.isReady) return;
 
+    // Use the normalized contactId for the cache key and API call
     const cacheKey = contactId && email ? `client_validation_${contactId}_${String(email).toLowerCase()}` : null;
 
     const validateClient = async () => {
