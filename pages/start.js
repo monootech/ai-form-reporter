@@ -4,7 +4,11 @@ import { useRouter } from 'next/router';
 
 export default function StartPage() {
   const router = useRouter();
-  const { email, contactId } = router.query;
+  const { email } = router.query;
+
+  // --- FIX: Normalize contactId to accept both possible parameter names ---
+  const rawContactId = router.query.contactId || router.query.contact_id;
+  const contactId = rawContactId || undefined;
 
   useEffect(() => {
     if (contactId) {
