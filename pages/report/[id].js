@@ -441,9 +441,23 @@ useEffect(() => {
           
 
 
+ {/* Added this to the bottom of the page, for increased impact - START */}
+<div className="mt-10 p-6 bg-gray-50 rounded-lg">
+  <h3 className="text-xl font-bold mb-2">
+    🚀 Your First Move (Do this today)
+  </h3>
 
+  <ul className="text-gray-700 space-y-2">
+    <li>1. Pick ONE habit from your plan</li>
+    <li>2. Start today (not tomorrow)</li>
+    <li>3. Track it once</li>
+  </ul>
 
-
+  <p className="mt-3 text-sm text-gray-500">
+    Momentum beats perfection.
+  </p>
+</div>
+{/* Added this to the bottom of the page, for increased impact - END */}
 
 
 
