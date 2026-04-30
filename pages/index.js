@@ -40,45 +40,23 @@ export default function Home() {
   const [validationError, setValidationError] = useState("");
   const [firstName, setFirstName] = useState("");
 
-  // ✅ NEW: store params in state so they are available everywhere (fixes scope bug)
-  const [contactId, setContactId] = useState("");
-  const [email, setEmail] = useState("");
-
   const CACHE_TTL_MS = 62 * 60 * 1000; // 62 minutes
 
   useEffect(() => {
     if (!router.isReady) return;
 
-    // ---- FIXED: Robust extraction using router.query (order-agnostic + safe) ----
-    const rawContactId = router.query.contactId;
-    const rawEmail = router.query.email;
+    // ---- CHANGED: Robust extraction using URLSearchParams (order/encoding-agnostic) ----
+    const params = new URLSearchParams(window.location.search);
+    const contactId = params.get("contactId")?.trim() || "";
+    const email = params.get("email")?.trim() || "";
 
-    // Handle possible array values (Next.js can return arrays)
-    const normalizedContactId = Array.isArray(rawContactId)
-      ? rawContactId[0]
-      : rawContactId || "";
-
-    const normalizedEmail = Array.isArray(rawEmail)
-      ? rawEmail[0]
-      : rawEmail || "";
-
-    const trimmedContactId = normalizedContactId.trim();
-    const trimmedEmail = normalizedEmail.trim();
-
-    // Store for use across component (and HabitForm)
-    setContactId(trimmedContactId);
-    setEmail(trimmedEmail);
-
-    const cacheKey =
-      trimmedContactId && trimmedEmail
-        ? `client_validation_${trimmedContactId}_${trimmedEmail.toLowerCase()}`
-        : null;
+    const cacheKey = contactId && email ? `client_validation_${contactId}_${email.toLowerCase()}` : null;
 
     const validateClient = async () => {
-      if (!trimmedContactId || !trimmedEmail) {
+      if (!contactId || !email) {
         setValidClient(false);
         setValidationError(
-          "Missing parameters. Please use the link sent to your email."
+          "Missing required parameters. Please ensure the link includes both 'contactId' and 'email'."
         );
         return;
       }
@@ -100,43 +78,29 @@ export default function Home() {
         const res = await fetch("/api/validate-client", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contactId: trimmedContactId,
-            email: trimmedEmail,
-          }),
+          body: JSON.stringify({ contactId, email }),
         });
         const result = await res.json();
 
         if (result.valid) {
           setValidClient(true);
           setFirstName(result.firstName || "");
-          if (cacheKey)
-            setCache(
-              cacheKey,
-              { valid: true, firstName: result.firstName || "" },
-              CACHE_TTL_MS
-            );
+          if (cacheKey) setCache(cacheKey, { valid: true, firstName: result.firstName || "" }, CACHE_TTL_MS);
         } else {
-          const errMsg =
-            result.error ||
-            result.message ||
-            "Invalid client link. Please use the correct email link.";
+          const errMsg = result.error || result.message || "Invalid client link. Please use the correct email link.";
           setValidClient(false);
           setValidationError(errMsg);
-          if (cacheKey)
-            setCache(cacheKey, { valid: false, error: errMsg }, CACHE_TTL_MS);
+          if (cacheKey) setCache(cacheKey, { valid: false, error: errMsg }, CACHE_TTL_MS);
         }
       } catch (err) {
         console.error("Validation request failed:", err);
         setValidClient(false);
-        setValidationError(
-          "Unable to validate access. Please try again later."
-        );
+        setValidationError("Unable to validate access. Please try again later.");
       }
     };
 
     validateClient();
-  }, [router.isReady, router.query]);
+  }, [router.isReady]);
 
   // Loading state (unchanged)
   if (validClient === null) {
