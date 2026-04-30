@@ -37,9 +37,9 @@ export default function Home() {
   const router = useRouter();
   const { email } = router.query;
 
-  // --- FIX: Normalize contactId to accept both possible parameter names ---
-  // GHL’s “Track Clicks” rewrites ?contactId=… to ?contact_id=…
-  const rawContactId = router.query.contactId || router.query.contact_id;
+  // --- FIX: Accept contactId, contact_id OR contactid (browser lowercases it) ---
+  const rawContactId =
+    router.query.contactId || router.query.contact_id || router.query.contactid;
   const contactId = rawContactId || undefined;
 
   const [validClient, setValidClient] = useState(null); // null = checking, true/false = result
@@ -51,8 +51,10 @@ export default function Home() {
   useEffect(() => {
     if (!router.isReady) return;
 
-    // Use the normalized contactId for the cache key and API call
-    const cacheKey = contactId && email ? `client_validation_${contactId}_${String(email).toLowerCase()}` : null;
+    const cacheKey =
+      contactId && email
+        ? `client_validation_${contactId}_${String(email).toLowerCase()}`
+        : null;
 
     const validateClient = async () => {
       if (!contactId || !email) {
@@ -85,9 +87,17 @@ export default function Home() {
         if (result.valid) {
           setValidClient(true);
           setFirstName(result.firstName || "");
-          if (cacheKey) setCache(cacheKey, { valid: true, firstName: result.firstName || "" }, CACHE_TTL_MS);
+          if (cacheKey)
+            setCache(
+              cacheKey,
+              { valid: true, firstName: result.firstName || "" },
+              CACHE_TTL_MS
+            );
         } else {
-          const errMsg = result.error || result.message || "Invalid client link. Please use the correct email link.";
+          const errMsg =
+            result.error ||
+            result.message ||
+            "Invalid client link. Please use the correct email link.";
           setValidClient(false);
           setValidationError(errMsg);
           if (cacheKey) setCache(cacheKey, { valid: false, error: errMsg }, CACHE_TTL_MS);
@@ -127,7 +137,9 @@ export default function Home() {
               <p>
                 <strong>Note:</strong> You must be an existing client to access this form.
               </p>
-              <p className="mt-2">Please use the link provided in your purchase confirmation or email.</p>
+              <p className="mt-2">
+                Please use the link provided in your purchase confirmation or email.
+              </p>
             </div>
           </div>
         </div>
@@ -139,7 +151,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-4">Personalized AI Habit Blueprint</h1>
+        <h1 className="text-3xl font-bold text-center mb-4">
+          Personalized AI Habit Blueprint
+        </h1>
         <p className="text-center text-gray-600 mb-6">
           {firstName
             ? `Welcome back, ${firstName}!`
