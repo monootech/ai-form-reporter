@@ -1,4 +1,4 @@
-// FILE: my_repo/pages/start.js (UPDATE)
+// FILE: my_repo/pages/start.js (UPDATED)
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -6,19 +6,22 @@ export default function StartPage() {
   const router = useRouter();
   const { email } = router.query;
 
-  // --- FIX: Normalize contactId to accept both possible parameter names ---
-  const rawContactId = router.query.contactId || router.query.contact_id;
+  // --- Accept contactId, contact_id OR contactid (browser lowercases) ---
+  const rawContactId =
+    router.query.contactId || router.query.contact_id || router.query.contactid;
   const contactId = rawContactId || undefined;
 
   useEffect(() => {
+    // Guard: wait until router is fully ready
+    if (!router.isReady) return;
+
     if (contactId) {
-      // Check if report exists by trying to fetch it
       checkExistingReport(contactId);
     } else {
-      // No contactId, go to form
+      // No contactId at all → go to index (which will show an error)
       router.push('/');
     }
-  }, [contactId]);
+  }, [router.isReady, contactId]);
 
   const checkExistingReport = async (contactId) => {
     try {
