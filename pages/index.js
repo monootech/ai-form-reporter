@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 
 const HabitForm = dynamic(() => import("../components/HabitForm"), { ssr: false });
 
-// Cache helpers (unchanged)
+// Cache helper
 const setCache = (key, value, ttlMs) => {
   try {
     localStorage.setItem(key, JSON.stringify({ ...value, expiry: Date.now() + ttlMs }));
@@ -35,6 +35,7 @@ const getCache = (key) => {
 
 export default function Home() {
   const router = useRouter();
+  const { email, contactId } = router.query;
 
   const [validClient, setValidClient] = useState(null); // null = checking, true/false = result
   const [validationError, setValidationError] = useState("");
@@ -45,19 +46,12 @@ export default function Home() {
   useEffect(() => {
     if (!router.isReady) return;
 
-    // ---- CHANGED: Robust extraction using URLSearchParams (order/encoding-agnostic) ----
-    const params = new URLSearchParams(window.location.search);
-    const contactId = params.get("contactId")?.trim() || "";
-    const email = params.get("email")?.trim() || "";
-
-    const cacheKey = contactId && email ? `client_validation_${contactId}_${email.toLowerCase()}` : null;
+    const cacheKey = contactId && email ? `client_validation_${contactId}_${String(email).toLowerCase()}` : null;
 
     const validateClient = async () => {
       if (!contactId || !email) {
         setValidClient(false);
-        setValidationError(
-          "Missing required parameters. Please ensure the link includes both 'contactId' and 'email'."
-        );
+        setValidationError("Missing parameters. Please use the link sent to your email.");
         return;
       }
 
@@ -73,7 +67,7 @@ export default function Home() {
         return;
       }
 
-      // No cache → call API
+      // No valid cache → call API
       try {
         const res = await fetch("/api/validate-client", {
           method: "POST",
@@ -100,9 +94,9 @@ export default function Home() {
     };
 
     validateClient();
-  }, [router.isReady]);
+  }, [router.isReady, contactId, email]);
 
-  // Loading state (unchanged)
+  // Loading state
   if (validClient === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -114,7 +108,7 @@ export default function Home() {
     );
   }
 
-  // Invalid client state (unchanged)
+  // Invalid client state
   if (validClient === false) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -135,7 +129,7 @@ export default function Home() {
     );
   }
 
-  // Valid client → show HabitForm (unchanged)
+  // Valid client → show HabitForm
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4">
